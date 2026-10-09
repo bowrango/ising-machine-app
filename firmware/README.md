@@ -7,7 +7,29 @@ This folder holds the ESP32 Feather V2 firmware. The web side and the telemetry 
 - Cable: the Anker USB-C cable, plugged into the second port on the left.
 - VS Code must not be holding the serial port.
 - Arduino IDE → Tools → Upload Speed = 460800.
-- Serial Monitor = 115200 baud.
+- Serial Monitor = 115200 baud, line ending "Newline" (or any setting except "No line ending").
+- Open `firmware/isingmachine/isingmachine.ino` in the IDE.
+
+Building with arduino-cli (bundled with the IDE) from the repo root:
+
+```
+CLI="/Applications/Arduino IDE.app/Contents/Resources/app/lib/backend/resources/arduino-cli"
+"$CLI" compile --fqbn esp32:esp32:adafruit_feather_esp32_v2 firmware/isingmachine
+"$CLI" upload  --fqbn esp32:esp32:adafruit_feather_esp32_v2 --board-options UploadSpeed=460800 \
+  -p /dev/cu.usbserial-5AA60810241 firmware/isingmachine
+```
+
+The serial port must be free, so close the IDE's Serial Monitor before uploading.
+
+At boot the firmware prints a test menu. Type a command and press Enter:
+
+| Command | Test |
+|---|---|
+| `all` | `map` + `digipots` + `sr`; fails only on a FAIL, not a SKIP |
+| `digipots` | every code 0–256 on all 28 channels, all pots written before reading back (7196 checks, ~0.34 s) |
+| `sr` | 16 shift-register snapshots with relative spins. PASS if the bits change; SKIP if they're static (oscillator board off) |
+| `map` | checks the coupling table covers each pair exactly once |
+| `decoder` | holds each decoder address 5 s for probing U13 |
 
 ---
 
@@ -33,7 +55,7 @@ The tables in this section are derived from `../hardware/oscillator-schematic.PD
 | Signal | GPIO | Notes |
 |---|---|---|
 | SCK1 | 14 | |
-| MISO1 | 12 | Strapping pin. Cold boot is confirmed OK. |
+| MISO1 | 12 | Strapping pin (MTDI) |
 | MOSI1 | 13 | Shared with the onboard LED |
 | MOSI1_BK | 32 | Currently used as MOSI (SW4 position) |
 | CS1 | 21 | Decoder enable |
@@ -74,10 +96,13 @@ The tables in this section are derived from `../hardware/oscillator-schematic.PD
 
 ### 1.5 Known issues
 
-- **Digipot write/readback:** 128 and 200 read back correctly, but values below 128 read back with bit 7 set (for example, 50 → 178).
-  - Check the 16-bit framing against DS22242 §7. The wiper data should be D8:D0 at bits [8:0], but the code uses `w << 2`.
-  - Check MOSI integrity on GPIO13 versus GPIO32.
-  - The 8-bit clamp prevents writing full scale (256).
+- **GPIO12 strapping (found 2026-10-08):** with the Feather seated on the board, MISO is driven high during reset (`boot:0x33` vs `0x13` off-board).
+  - The ESP32 then selects 1.8 V flash, which shows up as `wrong chip id 0xffff` at boot and `MD5 of file does not match` on upload.
+  - The likely cause is floating `CS1`/`ADDR` pins during reset, which enable the decoder and put a digipot SDO or the shift register's QH onto MISO.
+  - **Fix for this Feather:** `espefuse set_flash_voltage 3.3V` forces 3.3 V flash and makes the chip ignore GPIO12 at reset. This is irreversible, and correct for the PICO-MINI-02.
+  - TCON writes were scrambled the same way.
+  - Read responses are `0xFE00 | value`, with bit 9 = CMDERR = 1 when valid.
+  - All 7 pots × 4 channels now verify across 0–256, including full scale.
 - Make sure a shift-register read can never overlap a digipot transaction (`CLK_INH` / MISO mux timing).
 
 ---
@@ -92,21 +117,34 @@ The tables in this section are derived from `../hardware/oscillator-schematic.PD
 
 ### 2.2 Layout
 
-The Arduino build only compiles the sketch root and `src/`. The sketch therefore moves into a folder named after the `.ino`:
+The Arduino build only compiles the sketch folder and its `src/`, so the code lives under `firmware/isingmachine/`. Entries marked *planned* don't exist yet.
 
 ```
 firmware/
 ├── README.md
 └── isingmachine/
-    ├── isingmachine.ino      # setup(): init + create tasks
-    ├── config.h              # rates, pins, firmware version
-    ├── secrets.example.h     # secrets.h is gitignored
+    ├── isingmachine.ino          # setup(): bus init; loop(): serial test menu
+    ├── config.h                  # planned: rates, firmware version
+    ├── secrets.example.h         # planned: secrets.h is gitignored
     └── src/
-        ├── drivers/          # spi_bus, mcp4351, hcs165, decoder
-        ├── machine/          # IsingMachine, coupling_map.h, spin decode
-        ├── tasks/            # machine_task, net_task, console_task
-        └── net/              # wifi, ws_client, telemetry JSON
+        ├── board.h               # pin map, SPI clock, counts, decoder addresses
+        ├── drivers/
+        │   ├── bus.*             # HSPI + decoder CS + MISO mux; the only code that touches SPI pins
+        │   ├── mcp4351.*         # register read/write, TCON, setChannels(); no printing
+        │   └── hcs165.*          # readSnapshot()
+        ├── machine/
+        │   └── coupling_map.h    # (pot, ch) <-> spin pair table; planned: IsingMachine, spin decode
+        ├── tests/                # decoderSweep, digipotReadback, shiftRegister, couplingMap
+        ├── tasks/                # planned: machine_task, net_task, console_task
+        └── net/                  # planned: wifi, ws_client, telemetry JSON
 ```
+
+Rules:
+
+- Drivers return values and never print. Only the tests and the console print.
+- Each driver's `begin()` configures the pins it owns, and nothing outside `drivers/` touches SPI, decoder, or `SH_LD` pins.
+- Board facts (pins, reference designators, counts) live in `board.h`. Chip drivers stay generic.
+- An out-of-range pot, channel, or code is a programming error and trips an `assert`.
 
 ### 2.3 Tasks
 
@@ -219,7 +257,7 @@ Serial logging uses tagged lines:
 
 ## 3. Milestones
 
-1. Fix digipot write/readback (§1.5). All 28 couplers should verify across 0–256.
+1. ~~Fix digipot write/readback (§1.5). All 28 couplers should verify across 0–256.~~ Done 2026-10-08.
 2. Verify the coupling map, its sign, and the comparator bit order. `ring8` covers all three.
 3. Get reliable snapshots, with spins and agreement printed over serial.
 4. Move to the layout in §2.2, splitting out the drivers and `IsingMachine`.
