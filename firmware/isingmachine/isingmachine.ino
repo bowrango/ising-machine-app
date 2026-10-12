@@ -2,9 +2,8 @@
 // Date: Oct 08, 2026
 //
 // Layout (Arduino compiles the sketch folder and src/ recursively):
-//   src/board.h             pin map and board constants
+//   src/board.h             pin map, board constants, coupler wiring (spin pairs <-> digipot channels)
 //   src/drivers/            SPI bus, MCP4351 digipots, SN74HCS165 shift register
-//   src/machine/            coupling map (spin pairs <-> digipot channels)
 //   src/tests/              bench tests, run from the serial menu below
 // Hardware notes: firmware/README.md
 

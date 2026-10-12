@@ -2,7 +2,6 @@
 
 #include "../board.h"
 #include "../drivers/hcs165.h"
-#include "../machine/coupling_map.h"
 #include "tests.h"
 
 namespace tests {

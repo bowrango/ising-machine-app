@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
 #include "../board.h"
-#include "../machine/coupling_map.h"
 #include "tests.h"
 
 namespace tests {
@@ -14,16 +13,16 @@ Result couplingMap() {
   uint8_t seen[board::NUM_SPINS][board::NUM_SPINS] = {};
 
   for (uint8_t k = 0; k < board::NUM_COUPLERS; k++) {
-    const auto p = coupling_map::PAIRS[k];
+    const auto p = board::COUPLER_PAIRS[k];
     if (p.i >= p.j || p.j >= board::NUM_SPINS) {
       Serial.printf("  FAIL k=%d: bad pair (%d,%d)\n", k, p.i, p.j);
       pass = false;
       continue;
     }
     seen[p.i][p.j]++;
-    if (coupling_map::indexOf(p.j, p.i) != k) {
+    if (board::couplerIndex(p.j, p.i) != k) {
       Serial.printf("  FAIL k=%d: indexOf(%c,%c) != k\n", k,
-                    coupling_map::SPIN_LABEL[p.j], coupling_map::SPIN_LABEL[p.i]);
+                    board::SPIN_LABEL[p.j], board::SPIN_LABEL[p.i]);
       pass = false;
     }
   }
@@ -31,7 +30,7 @@ Result couplingMap() {
     for (uint8_t j = i + 1; j < board::NUM_SPINS; j++) {
       if (seen[i][j] != 1) {
         Serial.printf("  FAIL pair %c-%c appears %d times\n",
-                      coupling_map::SPIN_LABEL[i], coupling_map::SPIN_LABEL[j], seen[i][j]);
+                      board::SPIN_LABEL[i], board::SPIN_LABEL[j], seen[i][j]);
         pass = false;
       }
     }

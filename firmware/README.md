@@ -26,7 +26,7 @@ At boot the firmware prints a test menu. Type a command and press Enter:
 | Command | Test |
 |---|---|
 | `all` | `map` + `digipots` + `sr`; fails only on a FAIL, not a SKIP |
-| `digipots` | every code 0–256 on all 28 channels, all pots written before reading back (7196 checks, ~0.34 s) |
+| `digipots` | every code 0–256 on all 28 channels, all pots written before reading back (7196 checks, ~0.11 s at 10 MHz) |
 | `sr` | 16 shift-register snapshots with relative spins. PASS if the bits change; SKIP if they're static (oscillator board off) |
 | `map` | checks the coupling table covers each pair exactly once |
 | `decoder` | holds each decoder address 5 s for probing U13 |
@@ -91,7 +91,7 @@ The tables in this section are derived from `../hardware/oscillator-schematic.PD
 | U22 (6) | E–H | F–G | F–H | G–H |
 
 - Index `k = addr*4 + ch` enumerates the pairs (i<j) in lexicographic order.
-- This table belongs in `coupling_map.h`.
+- This table lives in `board.h` as `board::COUPLER_PAIRS`, with `couplerIndex(i, j)`, `couplerPot(k)` and `couplerChannel(k)`.
 - The protocol carries pairs `(i, j)` and never exposes `(addr, ch)`.
 
 ### 1.5 Known issues
@@ -127,13 +127,12 @@ firmware/
     ├── config.h                  # planned: rates, firmware version
     ├── secrets.example.h         # planned: secrets.h is gitignored
     └── src/
-        ├── board.h               # pin map, SPI clock, counts, decoder addresses
+        ├── board.h               # pin map, SPI clock, counts, decoder addresses, coupler wiring
         ├── drivers/
         │   ├── bus.*             # HSPI + decoder CS + MISO mux; the only code that touches SPI pins
         │   ├── mcp4351.*         # register read/write, TCON, setChannels(); no printing
         │   └── hcs165.*          # readSnapshot()
-        ├── machine/
-        │   └── coupling_map.h    # (pot, ch) <-> spin pair table; planned: IsingMachine, spin decode
+        ├── machine/              # planned: IsingMachine, spin decode, presets
         ├── tests/                # decoderSweep, digipotReadback, shiftRegister, couplingMap
         ├── tasks/                # planned: machine_task, net_task, console_task
         └── net/                  # planned: wifi, ws_client, telemetry JSON
