@@ -21,7 +21,7 @@ CLI="/Applications/Arduino IDE.app/Contents/Resources/app/lib/backend/resources/
 
 The serial port must be free, so close the IDE's Serial Monitor before uploading.
 
-At boot the firmware prints a test menu. Type a command and press Enter:
+At boot the firmware disconnects all couplers (so the ESP32 reset button turns them all off), then prints a test menu. Type a command and press Enter:
 
 | Command | Test |
 |---|---|
@@ -29,6 +29,7 @@ At boot the firmware prints a test menu. Type a command and press Enter:
 | `digipots` | every code 0–256 on all 28 channels, all pots written before reading back (7196 checks, ~0.11 s at 10 MHz) |
 | `sr` | 16 shift-register snapshots with relative spins. PASS if the bits change; SKIP if they're static (oscillator board off) |
 | `map` | checks the coupling table covers each pair exactly once |
+| `osccal` | disconnects all couplers, then measures each oscillator's phase vs A in 40 back-to-back windows of 32 snapshots (~0.7 ms each). Reports the deviation from A (0° in phase, 90° uncorrelated); no PASS/FAIL |
 | `decoder` | holds each decoder address 5 s for probing U13 |
 
 ---
@@ -67,9 +68,7 @@ The tables in this section are derived from `../hardware/oscillator-schematic.PD
 - Shift-register bit *i* is `WIN` of oscillator *i*, with A = bit 0 and H = bit 7.
 - A snapshot captures every oscillator's sign at the same instant. A single bit toggles at 1 MHz, so on its own it carries no information. **The bit relative to oscillator A is what carries meaning**, because once the oscillators are locked, each one is either in phase or anti-phase with A.
 - Spin decoding: `s_i = +1 if bit_i == bit_A else −1`, which fixes `s_A = +1`.
-- **Take N snapshots per measurement, with jittered timing.**
-  - A snapshot takes about 10 µs, which is close to a whole number of oscillator periods. With fixed spacing, every snapshot would land at the same point in the cycle.
-  - Before each `SH_LD` pulse, insert a random 0–1 µs busy-wait on the CPU cycle counter. `delayMicroseconds` is too coarse for this.
+- **Take N snapshots per measurement.** The samples must land at spread-out points in the oscillator cycle. Snapshots are spaced about 20 µs apart. The oscillators aren't derived from the ESP32 clock, and the spacing varies with bus and interrupt overhead, so successive samples already walk through the cycle without added jitter. On the bench, `osccal` gave the same results with and without a random 0–1 µs delay. Revisit this if a faster snapshot path makes the spacing exact.
 - **Agreement** is the percentage of snapshots that match the majority value. Snapshots taken near a zero crossing lower it. Agreement that stays low means the spins aren't locked.
 - **Oscillating heuristic:** if the raw byte never changes during a measurement, the oscillators are off (SW1) or have no supply.
 
@@ -123,7 +122,7 @@ The Arduino build only compiles the sketch folder and its `src/`, so the code li
 firmware/
 ├── README.md
 └── isingmachine/
-    ├── isingmachine.ino          # setup(): bus init; loop(): serial test menu
+    ├── isingmachine.ino          # setup(): bus init, all couplers off; loop(): serial test menu
     ├── config.h                  # planned: rates, firmware version
     ├── secrets.example.h         # planned: secrets.h is gitignored
     └── src/
@@ -132,8 +131,9 @@ firmware/
         │   ├── bus.*             # HSPI + decoder CS + MISO mux; the only code that touches SPI pins
         │   ├── mcp4351.*         # register read/write, TCON, setChannels(); no printing
         │   └── hcs165.*          # readSnapshot()
-        ├── machine/              # planned: IsingMachine, spin decode, presets
-        ├── tests/                # decoderSweep, digipotReadback, shiftRegister, couplingMap
+        ├── machine/
+        │   └── couplers.*        # disconnectAll(); planned: IsingMachine, spin decode, presets
+        ├── tests/                # decoderSweep, digipotReadback, shiftRegister, couplingMap, oscillatorCalibrate
         ├── tasks/                # planned: machine_task, net_task, console_task
         └── net/                  # planned: wifi, ws_client, telemetry JSON
 ```
@@ -247,7 +247,7 @@ Serial logging uses tagged lines:
 
 | Quantity | Target |
 |---|---|
-| Snapshot | ~10 µs + 0–1 µs jitter |
+| Snapshot | ~20 µs |
 | Snapshots per measurement | 16–64 |
 | Measurement period | ~10 ms |
 | Telemetry | 10 Hz while viewed, 1 Hz otherwise |
