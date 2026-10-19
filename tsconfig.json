@@ -24,7 +24,6 @@
     "src",
     "worker",
     "protocol",
-    "tools",
     "vite.config.ts"
   ]
 }

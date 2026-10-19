@@ -9,7 +9,7 @@ Build a minimal, read-only web interface at **isingmachine.app** for the ESP32-c
 - The ESP32 owns the hardware and publishes telemetry over an outbound WebSocket.
 - A Cloudflare Worker and Durable Object relay that telemetry to browsers.
 - The browser displays machine state. It sends no control commands in v1.
-- There is exactly one device. It is either the real ESP32 or a fake device that sends dummy values. Both use the same endpoint and protocol.
+- There is exactly one device, the ESP32.
 - Dev and prod run the same code. Only the host differs.
 
 The firmware and the web app can be developed independently, with the protocol (§4) as the contract between them. Hardware and firmware details live in [`firmware/README.md`](firmware/README.md).
@@ -19,9 +19,8 @@ The firmware and the web app can be developed independently, with the protocol (
 ## 2. Architecture
 
 ```
-PCB ──SPI── ESP32  ─┐
-                    ├─► /api/device ──► Worker ─► DeviceSession (DO) ─► /api/ws ──► Browser
-tools/fake-device ──┘     (one at a time; a new connection replaces the old)
+PCB ──SPI── ESP32 ──► /api/device ──► Worker ─► DeviceSession (DO) ─► /api/ws ──► Browser
+                       (a new device connection replaces the old)
 ```
 
 - **Prod host:** `isingmachine.app`, served from the Cloudflare edge.
@@ -42,8 +41,6 @@ ising-machine-app/
 ├── worker/
 │   ├── index.ts           # routing, auth
 │   └── device-session.ts  # Durable Object
-├── tools/
-│   └── fake-device.ts
 ├── index.html
 ├── vite.config.ts
 ├── wrangler.jsonc
@@ -52,7 +49,7 @@ ising-machine-app/
 └── SPEC.MD
 ```
 
-It is one npm package with no monorepo tooling. `protocol/` is imported by `src/`, `worker/`, and `tools/`.
+It is one npm package with no monorepo tooling. `protocol/` is imported by `src/` and `worker/`.
 
 ---
 
@@ -65,10 +62,10 @@ The protocol uses JSON text frames over WebSocket, and every message has a `type
 **`hello`** is sent on every connect:
 
 ```json
-{ "type": "hello", "protocol": 1, "firmware": "0.1.0", "bootId": "7f3a", "fake": false }
+{ "type": "hello", "protocol": 1, "firmware": "0.1.0", "bootId": "7f3a" }
 ```
 
-`bootId` is random per boot and lets the browser detect resets. `fake` marks the fake device.
+`bootId` is random per boot and lets the browser detect resets.
 
 **`config`** is sent on connect and whenever the couplings change:
 
@@ -134,7 +131,7 @@ This is a telemetry-rate hint and the only message the server sends to the devic
 |---|---|---|
 | `GET /api/state` | browser / curl | JSON `{presence, hello, config, state}` |
 | `GET /api/ws` | browser | WebSocket, read-only. Inbound messages are ignored. |
-| `GET /api/device` | ESP32 or fake device | WebSocket. Requires `Authorization: Bearer <DEVICE_TOKEN>`. |
+| `GET /api/device` | ESP32 | WebSocket. Requires `Authorization: Bearer <DEVICE_TOKEN>`. |
 | `GET /api/health` | curl | `{"ok":true}` |
 | everything else | browser | static SPA assets |
 
@@ -143,7 +140,7 @@ This is a telemetry-rate hint and the only message the server sends to the devic
 There is a single DO instance, `idFromName("device")`.
 
 - Uses the WebSocket Hibernation API, with sockets tagged `device` or `browser`.
-- Allows at most one device socket. A new device connection closes the old one, which also handles ESP32 reconnects and switching between the real and fake device.
+- Allows at most one device socket. A new device connection closes the old one, which also handles ESP32 reconnects.
 - Caches the latest `hello`, `config`, and `state` and broadcasts each to browsers.
 - Persists `hello`, `config`, and `lastSeen` to storage on change. `state` is kept in memory only.
 - Marks the device offline when its socket closes, or after 5 s without a message (via an alarm).
@@ -187,15 +184,13 @@ Each component picks its environment as follows:
 - **SPA:** builds every URL from `window.location`, using `ws:` under `http:` and `wss:` under `https:`. It has no build-time environment variables.
 - **Worker:** the code is identical in both environments, and only the secret differs.
 - **ESP32:** `ENV_LOCAL` in `secrets.h` selects the host (see `firmware/README.md`). Switching means reflashing.
-- **Fake device:** `npm run fake-device` targets dev, and `npm run fake-device:prod` targets prod.
 
 Workflows:
 
 | Task | Terminal 1 | Terminal 2 |
 |---|---|---|
-| Web development | `npm run dev` | `npm run fake-device` |
 | Hardware against dev | `npm run dev` | flash ESP32 with `ENV_LOCAL 1` + serial monitor |
-| Production | `npm run deploy` | ESP32 with `ENV_LOCAL 0`, or `npm run fake-device:prod` |
+| Production | `npm run deploy` | ESP32 with `ENV_LOCAL 0` |
 
 Notes:
 
@@ -219,7 +214,7 @@ The v1 page shows:
 
 - **Header:**
   - online/offline status with last seen
-  - firmware version, with a "fake" badge when `hello.fake` is set
+  - firmware version
   - seq, rate, and dropped count
 - **Spins:** 8 cells showing ±1, each shaded by agreement, plus the raw byte in binary.
 - **Couplings:** an 8×8 upper-triangular grid of codes, with "off" for disconnected couplers.
@@ -227,26 +222,14 @@ The v1 page shows:
 
 ---
 
-## 7. Fake Device
-
-`tools/fake-device.ts` runs under Node and connects to the same `/api/device` endpoint with the same token. It sends dummy data:
-
-- `hello` with `fake: true`
-- the `ring8` `config`
-- `state` at the rate set by `viewers`, with random spins and agreement
-
-The fake device does no simulation. Its only job is to exercise the data path and the GUI.
-
----
-
-## 8. Authentication
+## 7. Authentication
 
 - **Device:** the Worker checks a shared bearer token on `/api/device`. In dev the token is `dev`, and in prod it is a Wrangler secret.
 - **Browser:** viewing is public and read-only, with no login.
 
 ---
 
-## 9. Non-Goals for v1
+## 8. Non-Goals for v1
 
 - Browser → machine control
 - Multiple devices
@@ -257,20 +240,18 @@ Control can later be added as new message types on the existing device socket.
 
 ---
 
-## 10. Milestones
+## 9. Milestones
 
 Firmware milestones are tracked in `firmware/README.md`.
 
 1. ~~Scaffold Vite + React + Worker; deploy to isingmachine.app~~ (done 2026-10-08)
 2. `protocol/messages.ts`, `DeviceSession`, and routes
-3. Fake device → dev → browser, end to end
-4. Fake device → prod → browser
-5. ESP32 → dev → browser (requires the firmware net task)
-6. ESP32 → prod → browser
+3. ESP32 → dev → browser (requires the firmware net task)
+4. ESP32 → prod → browser
 
 ---
 
-## 11. Guiding Principle
+## 10. Guiding Principle
 
 ```
 SPI / registers / pin mux     (firmware drivers, board-revision specific)

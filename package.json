@@ -8,9 +8,7 @@
     "preview": "vite build && vite preview",
     "deploy": "vite build && wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "cf-typegen": "wrangler types",
-    "fake-device": "node --experimental-strip-types --no-warnings tools/fake-device.ts",
-    "fake-device:prod": "node --experimental-strip-types --no-warnings tools/fake-device.ts --url wss://isingmachine.app/api/device"
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "react": "^19.3.0",

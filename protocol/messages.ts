@@ -12,7 +12,6 @@ export interface Hello {
   protocol: number;
   firmware: string;
   bootId: string;
-  fake: boolean;
 }
 
 export interface Coupler {

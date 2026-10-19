@@ -10,7 +10,7 @@ interface Props {
 
 export function StatusBar({ presence, hello, stats, seq }: Props) {
   const online = stats.connected && !!presence?.online;
-  const source = !online ? "No device" : hello?.fake ? "Fake device" : "Real device";
+  const source = online ? "Device online" : "No device";
 
   let detail: string;
   if (!stats.connected) detail = "Server unreachable";
