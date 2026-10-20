@@ -1,6 +1,20 @@
+# npm dependencies
 node_modules/
+
+# Vite build output
 dist/
+
+# Wrangler local state (dev Durable Object storage)
 .wrangler/
+
+# Dev DEVICE_TOKEN for the Worker
 .dev.vars
+
+# macOS Finder metadata
 .DS_Store
+
+# ESP32 Wi-Fi credentials and DEVICE_TOKEN
 firmware/**/secrets.h
+
+# Python bytecode (hardware/io scripts)
+__pycache__/
