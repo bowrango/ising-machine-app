@@ -1,20 +1,12 @@
-// Bench tests, run from the serial menu in isingmachine.ino.
-// The decoder sweep is manual (probe with a multimeter) and the oscillator calibration only reports
-// measurements; the others return a Result.
 #pragma once
 
 namespace tests {
 
-// Skip: the test couldn't exercise the hardware (e.g. oscillator board disconnected).
-// Only Fail indicates a fault.
-enum class Result { Pass, Fail, Skip };
-
-const char *toString(Result r);
-
-void decoderSweep();
-Result digipotReadback();
-Result shiftRegister();
-Result couplingMap();
-void oscillatorCalibrate();
+void samplePhases();
+void sweepDecoder();
+void sweepCouplers();
+// Sets all 28 couplers to the code in arg (0..256) and prints the expected L-R resistance at each
+// oscillator's header pins. Couplers stay set afterwards.
+void setCouplers(const char *arg);
 
 }  // namespace tests

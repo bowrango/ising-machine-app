@@ -25,12 +25,10 @@ At boot the firmware disconnects all couplers (so the ESP32 reset button turns t
 
 | Command | Test |
 |---|---|
-| `all` | `map` + `digipots` + `sr`; fails only on a FAIL, not a SKIP |
-| `digipots` | every code 0–256 on all 28 channels, all pots written before reading back (7196 checks, ~0.11 s at 10 MHz) |
-| `sr` | 16 shift-register snapshots with relative spins. PASS if the bits change; SKIP if they're static (oscillator board off) |
-| `map` | checks the coupling table covers each pair exactly once |
-| `osccal` | disconnects all couplers, then measures each oscillator's phase vs A in 40 back-to-back windows of 32 snapshots (~0.7 ms each). Reports the deviation from A (0° in phase, 90° uncorrelated); no PASS/FAIL |
-| `decoder` | holds each decoder address 5 s for probing U13 |
+| `sweepCouplers` | every code 0–256 on all 28 channels, all pots written before reading back (7196 checks, ~0.11 s at 10 MHz) |
+| `samplePhases` | 16 shift-register snapshots with relative spins. The bits only change while the oscillators run |
+| `sweepDecoder` | holds each decoder address 5 s for probing U13 |
+| `setCouplers <0..256>` | sets all 28 couplers to one code and prints the expected resistance across each oscillator's L/R header pins (J1A/J1B), for checking with a meter. Unplug the oscillator board first. Couplers stay set |
 
 ---
 
@@ -132,8 +130,8 @@ firmware/
         │   ├── mcp4351.*         # register read/write, TCON, setChannels(); no printing
         │   └── hcs165.*          # read()
         ├── machine/
-        │   └── couplers.*        # disconnectAll(); planned: IsingMachine, spin decode, presets
-        ├── tests/                # decoderSweep, digipotReadback, shiftRegister, couplingMap, oscillatorCalibrate
+        │   └── couplers.*        # disconnect(); planned: IsingMachine, spin decode, presets
+        ├── tests/                # samplePhases, sweepDecoder, sweepCouplers, setCouplers
         ├── tasks/                # planned: machine_task, net_task, console_task
         └── net/                  # planned: wifi, ws_client, telemetry JSON
 ```

@@ -16,6 +16,10 @@ constexpr uint8_t NUM_CHANNELS = 4;
 constexpr int16_t CODE_MAX = 256;  // W-B resistance: 0 = R_W (strongest coupling), 256 = 10 kΩ
 constexpr int16_t DISCONNECTED = -1;
 
+// Nominal W-B resistance: R_AB = 10 kΩ ±20%, R_W ≈ 75 Ω typical (datasheet, 5 V; higher at 3.3 V).
+constexpr float R_AB_OHMS = 10000.0f;
+constexpr float R_W_OHMS = 75.0f;
+
 // Register addresses (Table 4-2)
 enum Register : uint8_t {
   WIPER0 = 0x00,

@@ -55,6 +55,14 @@ constexpr SpinPair COUPLER_PAIRS[NUM_COUPLERS] = {
   {4, 7}, {5, 6}, {5, 7}, {6, 7},  // U22: E-H F-G F-H G-H
 };
 
+// Which terminals coupler (i, j), i < j, joins (hardware/schematic/coupling-network.pdf):
+// j - i odd joins i_L to j_R, j - i even joins i_R to j_L.
+constexpr bool couplerJoinsLeftOfI(uint8_t i, uint8_t j) { return (j - i) % 2; }
+
+// Oscillator header pins on the coupler board: _L on J1A, _R on J1B.
+constexpr uint8_t J1A_PIN_L[NUM_SPINS] = {5, 9, 11, 7, 1, 13, 15, 3};
+constexpr uint8_t J1B_PIN_R[NUM_SPINS] = {6, 10, 12, 8, 2, 14, 16, 4};
+
 constexpr uint8_t couplerPot(uint8_t k) { return k / CHANNELS_PER_DIGIPOT; }
 constexpr uint8_t couplerChannel(uint8_t k) { return k % CHANNELS_PER_DIGIPOT; }
 

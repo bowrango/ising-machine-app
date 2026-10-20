@@ -12,7 +12,7 @@ namespace {
 constexpr uint16_t TCON_WB_BITS = 0b000110011;
 }  // namespace
 
-uint8_t disconnectAll() {
+uint8_t disconnect() {
   const int16_t off[mcp4351::NUM_CHANNELS] = {mcp4351::DISCONNECTED, mcp4351::DISCONNECTED,
                                               mcp4351::DISCONNECTED, mcp4351::DISCONNECTED};
   uint8_t failed = 0;

@@ -17,36 +17,22 @@ static constexpr size_t MAX_LINE = 64;
 
 static void printHelp() {
   Serial.println("Commands:");
-  Serial.println("  digipots  every code 0..256 on all 28 digipot channels (timed)");
-  Serial.println("  sr        shift-register snapshots + relative spins");
-  Serial.println("  map       check the coupling map table");
-  Serial.println("  osccal    all couplers off, phase of each oscillator vs A over 10 rounds");
-  Serial.println("  all       map + digipots + sr");
-  Serial.println("  decoder   decoder sweep, 5 s per address (probe U13 with a multimeter)");
-  Serial.println("  help      this list");
+  Serial.println("  samplePhases");
+  Serial.println("  sweepDecoder");
+  Serial.println("  sweepCouplers");
+  Serial.println("  setCouplers <0..256>");
+  Serial.println("  help");
 }
 
 static void runCommand(const char *cmd) {
-  using tests::Result;
-  if (!strcmp(cmd, "digipots")) {
-    tests::digipotReadback();
-  } else if (!strcmp(cmd, "sr")) {
-    tests::shiftRegister();
-  } else if (!strcmp(cmd, "map")) {
-    tests::couplingMap();
-  } else if (!strcmp(cmd, "osccal")) {
-    tests::oscillatorCalibrate();
-  } else if (!strcmp(cmd, "all")) {
-    // Fail if any test fails; Skip doesn't count as a failure.
-    const Result results[] = {tests::couplingMap(), tests::digipotReadback(), tests::shiftRegister()};
-    uint8_t failed = 0, skipped = 0;
-    for (Result r : results) {
-      failed += r == Result::Fail;
-      skipped += r == Result::Skip;
-    }
-    Serial.printf("=== all: %s (%d failed, %d skipped) ===\n", failed ? "FAIL" : "PASS", failed, skipped);
-  } else if (!strcmp(cmd, "decoder")) {
-    tests::decoderSweep();
+  if (!strcmp(cmd, "samplePhases")) {
+    tests::samplePhases();
+  } else if (!strcmp(cmd, "sweepDecoder")) {
+    tests::sweepDecoder();
+  } else if (!strcmp(cmd, "sweepCouplers")) {
+    tests::sweepCouplers();
+  } else if (!strncmp(cmd, "setCouplers ", 12)) {
+    tests::setCouplers(cmd + 12);
   } else if (!strcmp(cmd, "help")) {
     printHelp();
   } else {
@@ -61,23 +47,18 @@ void setup() {
   bus::setup();
   Serial.println("\n[BOOT] Ising machine firmware");
 
-  // Start from a known state: every coupler off, so a reset disconnects them all.
-  if (const uint8_t failed = couplers::disconnectAll()) {
-    Serial.print("[BOOT] WARNING: couplers not confirmed off on");
+  // Disconnect all couplers for simple reset
+  const uint8_t failed = couplers::disconnect();
+  if (failed) {
     for (uint8_t pot = 0; pot < board::NUM_DIGIPOTS; pot++) {
       if (failed & (1 << pot)) Serial.printf(" %s", board::DIGIPOT_LABEL[pot]);
     }
-    Serial.println(" (coupler board disconnected?)");
-  } else {
-    Serial.println("[BOOT] all couplers off");
   }
-
   printHelp();
-  Serial.print("> ");
 }
 
 void loop() {
-  // Fixed-size line buffer: no heap use, and input without a line ending can't grow it.
+  // Fixed-size line buffer
   static char line[MAX_LINE + 1];
   static size_t len = 0;
   static bool overflow = false;
@@ -97,7 +78,6 @@ void loop() {
         if (*cmd) {
           Serial.println(cmd);
           runCommand(cmd);
-          Serial.print("> ");
         }
       }
       len = 0;

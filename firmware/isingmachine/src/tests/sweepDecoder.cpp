@@ -11,9 +11,9 @@ namespace tests {
 // probe the decoder outputs with a multimeter.
 // U13 (SN74HCS138DYYR) output pins: Y0=15, Y1=14, Y2=13, Y3=12, Y4=11, Y5=10, Y6=9.
 // Selected output → 0V; all others → 3.3V.
-void decoderSweep() {
+void sweepDecoder() {
   static const uint8_t Y_PIN[board::NUM_DIGIPOTS] = {15, 14, 13, 12, 11, 10, 9};
-  Serial.println("=== decoderSweep ===");
+  Serial.println("=== Begin sweepDecoder ===");
   for (uint8_t addr = 0; addr < board::NUM_DIGIPOTS; addr++) {
     bus::writeAddress(addr);
     const uint8_t read = bus::readAddress();
@@ -26,7 +26,7 @@ void decoderSweep() {
     delay(5000);
     bus::deselect();
   }
-  Serial.println("=== end decoderSweep ===");
+  Serial.println("=== End sweepDecoder ===");
 }
 
 }  // namespace tests
