@@ -9,7 +9,6 @@
 // Hardware notes: firmware/README.md
 
 #include "src/drivers/bus.h"
-#include "src/drivers/hcs165.h"
 #include "src/board.h"
 #include "src/machine/couplers.h"
 #include "src/tests/tests.h"
@@ -59,8 +58,7 @@ static void runCommand(const char *cmd) {
 void setup() {
   Serial.begin(115200);
   delay(500);
-  bus::begin();
-  hcs165::begin();
+  bus::setup();
   Serial.println("\n[BOOT] Ising machine firmware");
 
   // Start from a known state: every coupler off, so a reset disconnects them all.

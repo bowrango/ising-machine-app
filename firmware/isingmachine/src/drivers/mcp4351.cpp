@@ -49,15 +49,15 @@ int16_t decode(uint16_t response) {
 
 void transferWords(uint8_t pot, const uint16_t *words, uint8_t count, uint16_t *responses = nullptr) {
   assert(pot < board::NUM_DIGIPOTS);  // address 7 is the shift register
-  bus::setAddress(pot);
+  bus::writeAddress(pot);
   bus::beginTransaction(SPI_MODE0);
-  bus::assertCs();
+  bus::select();
   delayMicroseconds(CS_SETUP_US);
   for (uint8_t i = 0; i < count; i++) {
     uint16_t r = bus::transfer16(words[i]);
     if (responses) responses[i] = r;
   }
-  bus::releaseCs();
+  bus::deselect();
   bus::endTransaction();
 }
 

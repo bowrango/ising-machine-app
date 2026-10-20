@@ -40,7 +40,7 @@ void oscillatorCalibrate() {
   for (uint8_t w = 0; w < NUM_WINDOWS; w++) {
     startUs[w] = micros();
     for (uint8_t s = 0; s < WINDOW_SAMPLES; s++) {
-      const uint8_t raw = hcs165::readSnapshot();
+      const uint8_t raw = hcs165::read();
       if (w == 0 && s == 0) first = raw;
       changed |= raw ^ first;
       const uint8_t diff = raw ^ ((raw & 1) ? 0xFF : 0x00);  // bit i set if i differs from A

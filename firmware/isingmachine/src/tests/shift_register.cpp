@@ -16,7 +16,7 @@ Result shiftRegister() {
   constexpr uint8_t NUM_SAMPLES = 16;
   uint8_t samples[NUM_SAMPLES];
   for (uint8_t s = 0; s < NUM_SAMPLES; s++) {
-    samples[s] = hcs165::readSnapshot();
+    samples[s] = hcs165::read();
     delayMicroseconds(10);
   }
 

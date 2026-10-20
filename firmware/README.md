@@ -130,7 +130,7 @@ firmware/
         ├── drivers/
         │   ├── bus.*             # HSPI + decoder CS + MISO mux; the only code that touches SPI pins
         │   ├── mcp4351.*         # register read/write, TCON, setChannels(); no printing
-        │   └── hcs165.*          # readSnapshot()
+        │   └── hcs165.*          # read()
         ├── machine/
         │   └── couplers.*        # disconnectAll(); planned: IsingMachine, spin decode, presets
         ├── tests/                # decoderSweep, digipotReadback, shiftRegister, couplingMap, oscillatorCalibrate
@@ -141,7 +141,7 @@ firmware/
 Rules:
 
 - Drivers return values and never print. Only the tests and the console print.
-- Each driver's `begin()` configures the pins it owns, and nothing outside `drivers/` touches SPI, decoder, or `SH_LD` pins.
+- `bus::setup()` configures every SPI, decoder, and `SH_LD` pin, and nothing outside `bus` touches them.
 - Board facts (pins, reference designators, counts) live in `board.h`. Chip drivers stay generic.
 - An out-of-range pot, channel, or code is a programming error and trips an `assert`.
 

@@ -15,17 +15,16 @@ void decoderSweep() {
   static const uint8_t Y_PIN[board::NUM_DIGIPOTS] = {15, 14, 13, 12, 11, 10, 9};
   Serial.println("=== decoderSweep ===");
   for (uint8_t addr = 0; addr < board::NUM_DIGIPOTS; addr++) {
-    bus::setAddress(addr);
-    const int a0 = digitalRead(board::PIN_ADDR0);
-    const int a1 = digitalRead(board::PIN_ADDR1);
-    const int a2 = digitalRead(board::PIN_ADDR2);
-    bus::assertCs();
+    bus::writeAddress(addr);
+    const uint8_t read = bus::readAddress();
+    const int a0 = read & 1, a1 = (read >> 1) & 1, a2 = (read >> 2) & 1;
+    bus::select();
     Serial.printf("[addr=%d %s] GPIO%d(A0)=%d GPIO%d(A1)=%d GPIO%d(A2)=%d → U13 pin %d (Y%d) should be 0V (5s)...\n",
                   addr, board::DIGIPOT_LABEL[addr],
                   board::PIN_ADDR0, a0, board::PIN_ADDR1, a1, board::PIN_ADDR2, a2,
                   Y_PIN[addr], addr);
     delay(5000);
-    bus::releaseCs();
+    bus::deselect();
   }
   Serial.println("=== end decoderSweep ===");
 }

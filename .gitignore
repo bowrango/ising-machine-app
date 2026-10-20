@@ -16,5 +16,8 @@ dist/
 # ESP32 Wi-Fi credentials and DEVICE_TOKEN
 firmware/**/secrets.h
 
+# Local bench-test notes
+firmware/isingmachine/src/tests/TODO.md
+
 # Python bytecode (hardware/io scripts)
 __pycache__/

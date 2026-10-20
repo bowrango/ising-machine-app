@@ -15,25 +15,22 @@ constexpr uint32_t LOAD_PULSE_US = 1;
 constexpr uint32_t LOAD_TO_CLOCK_US = 1;
 }  // namespace
 
-void begin() {
-  // Idle in parallel-load mode.
-  pinMode(board::PIN_SH_LD, OUTPUT);
-  digitalWrite(board::PIN_SH_LD, LOW);
-}
-
-uint8_t readSnapshot() {
-  // The SN74HCS165 shifts on rising edges; mode 2 samples before each shift.
+uint8_t read() {
+  // Mode 2: SCLK idles high and the ESP32 samples on falling edges, half a clock before each
+  // rising edge shifts the register. QH (input H) is valid before the first edge.
   bus::beginTransaction(SPI_MODE2);
-  bus::releaseCs();
-  bus::setAddress(board::ADDR_SHIFT_REG);  // CLK_INH low, MISO mux -> QH
-  digitalWrite(board::PIN_SH_LD, LOW);
-  bus::assertCs();
-  delayMicroseconds(LOAD_PULSE_US);  // Allow the parallel inputs to load and QH to settle.
-  digitalWrite(board::PIN_SH_LD, HIGH);
-  delayMicroseconds(LOAD_TO_CLOCK_US);
+  bus::deselect();
+  bus::writeAddress(board::ADDR_SHIFT_REG);  // Set while deselected, so no digipot sees a glitch.
+  bus::load();
+  // CLK_INH goes low and the MISO mux switches to QH. SCLK is already high, so ungating the clock
+  // can't make a rising edge.
+  bus::select();
+  delayMicroseconds(LOAD_PULSE_US);  // SH/LD low pulse width; QH settles to input H.
+  bus::shift();                      // Rising SH/LD: this is the snapshot instant for all 8 inputs.
+  delayMicroseconds(LOAD_TO_CLOCK_US);  // SH/LD high setup before the first rising SCLK.
   const uint8_t result = bus::transfer8(0);  // H..A map to bits 7..0.
-  bus::releaseCs();
-  digitalWrite(board::PIN_SH_LD, LOW);
+  bus::deselect();  // CLK_INH high again, MISO mux back to the digipots.
+  bus::load();      // Back to idle: continuously loading.
   bus::endTransaction();
   return result;
 }
