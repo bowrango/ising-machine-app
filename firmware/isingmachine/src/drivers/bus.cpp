@@ -13,26 +13,27 @@ SPIClass spi(HSPI);
 
 void setup() {
   // Until these pins are driven they float, which can enable the decoder (see README, GPIO12 strapping).
-  pinMode(board::PIN_ADDR0, OUTPUT);
-  pinMode(board::PIN_ADDR1, OUTPUT);
-  pinMode(board::PIN_ADDR2, OUTPUT);
-  writeAddress(0);
-
   spi.begin(board::PIN_SCLK, board::PIN_MISO, board::PIN_MOSI_BK, board::PIN_CS);
   // The Arduino API doesn't drive SS automatically; CS1 is a plain GPIO.
   // Idle high: decoder disabled, so no digipot is selected and CLK_INH is high.
   pinMode(board::PIN_CS, OUTPUT);
   deselect();
 
+  pinMode(board::PIN_ADDR0, OUTPUT);
+  pinMode(board::PIN_ADDR1, OUTPUT);
+  pinMode(board::PIN_ADDR2, OUTPUT);
+  writeAddress(0);
+
   // Idle low: the shift register continuously loads WIN_A..WIN_H.
   pinMode(board::PIN_SH_LD, OUTPUT);
   load();
 }
 
-// Change the address only while deselected; with CS1 low the decoder outputs would glitch through
-// intermediate addresses as the three lines change one at a time.
+// Deselects first: with CS1 low the decoder outputs would glitch through intermediate addresses
+// as the three lines change one at a time.
 void writeAddress(uint8_t addr) {
   assert(addr <= 7);
+  deselect();
   digitalWrite(board::PIN_ADDR0, addr & 1);
   digitalWrite(board::PIN_ADDR1, (addr >> 1) & 1);
   digitalWrite(board::PIN_ADDR2, (addr >> 2) & 1);
@@ -52,7 +53,9 @@ void load() { digitalWrite(board::PIN_SH_LD, LOW); }
 void shift() { digitalWrite(board::PIN_SH_LD, HIGH); }
 
 // Each driver passes its own mode (see bus.h); the settings apply until endTransaction().
+// Deselects first: a mode change moves SCLK's idle level, which would clock a selected device.
 void beginTransaction(uint8_t spiMode) {
+  deselect();
   spi.beginTransaction(SPISettings(board::SPI_CLOCK_HZ, MSBFIRST, spiMode));
 }
 

@@ -90,14 +90,14 @@ void setCouplers(const char *arg) {
   }
 
   const float r = mcp4351::R_W_OHMS + code * mcp4351::R_AB_OHMS / mcp4351::CODE_MAX;
-  Serial.printf("  code %d, nominal %.0f ohms per coupler\n", code, r);
+  Serial.printf("  code %d = nominal %.0f ohms per coupler\n", code, r);
   Serial.println("  osc  J1A(L)  J1B(R)  expected L-R");
   // ohm measurements for code 0:   A 123, B 180, C 100, D 165, E 165, F 129, G 138, H 95.
   // ohm measurements for code 256: A 7450, B 8490, C 7820, D 8030, E 8250, F 7840, G 8570, H 7510.
   for (uint8_t x = 0; x < board::NUM_SPINS; x++) {
     const float rx = solveNodeResistance(x, r);
-    Serial.printf("  %c    %2u      %2u      %7.0f ohm  (%.3f x R)\n", board::SPIN_LABEL[x],
-                  board::J1A_PIN_L[x], board::J1B_PIN_R[x], rx, rx / r);
+    Serial.printf("  %c    %2u      %2u      %7.0f ohm  ", board::SPIN_LABEL[x],
+                  board::J1A_PIN_L[x], board::J1B_PIN_R[x], rx);
   }
   Serial.println("=== End setCouplers ===");
 }

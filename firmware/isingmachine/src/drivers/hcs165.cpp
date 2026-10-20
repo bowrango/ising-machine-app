@@ -19,8 +19,7 @@ uint8_t read() {
   // Mode 2: SCLK idles high and the ESP32 samples on falling edges, half a clock before each
   // rising edge shifts the register. QH (input H) is valid before the first edge.
   bus::beginTransaction(SPI_MODE2);
-  bus::deselect();
-  bus::writeAddress(board::ADDR_SHIFT_REG);  // Set while deselected, so no digipot sees a glitch.
+  bus::writeAddress(board::ADDR_SHIFT_REG);
   bus::load();
   // CLK_INH goes low and the MISO mux switches to QH. SCLK is already high, so ungating the clock
   // can't make a rising edge.

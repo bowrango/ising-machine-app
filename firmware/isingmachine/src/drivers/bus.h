@@ -8,7 +8,8 @@ namespace bus {
 // Configures the SPI peripheral, CS1, SH_LD and the decoder address lines. Call before any driver.
 void setup();
 
-// Point the decoder at addr (0-6 digipot, 7 shift register). Takes effect while CS is asserted.
+// Deselects, then points the decoder at addr (0-6 digipot, 7 shift register).
+// Takes effect on the next select().
 void writeAddress(uint8_t addr);
 
 // Address currently on the decoder lines, read back from the GPIOs.
@@ -20,7 +21,7 @@ void deselect();  // CS1 high: all decoder outputs high
 void load();   // SH_LD low: shift register loads its parallel inputs (idle state)
 void shift();  // SH_LD high: shift register shifts on SCLK
 
-// Holds the bus at SPI_CLOCK_HZ, MSB first, until endTransaction(). Call while deselected.
+// Deselects, then holds the bus at SPI_CLOCK_HZ, MSB first, until endTransaction().
 //   SPI_MODE0: SCLK idles low, sample on rising edge (MCP4351)
 //   SPI_MODE2: SCLK idles high, sample on falling edge (SN74HCS165)
 void beginTransaction(uint8_t spiMode);
