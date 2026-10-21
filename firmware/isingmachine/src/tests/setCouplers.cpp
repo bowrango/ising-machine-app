@@ -23,7 +23,7 @@ float solveNodeResistance(uint8_t x, float r_ohms) {
   float G[NUM_NODES][NUM_NODES] = {};
   for (uint8_t k = 0; k < board::NUM_COUPLERS; k++) {
     const auto [i, j] = board::COUPLER_PAIRS[k];
-    const bool left = board::couplerJoinsLeftOfI(i, j);
+    const bool left = (j - i) % 2;
     const uint8_t a = left ? nodeL(i) : nodeR(i);
     const uint8_t b = left ? nodeR(j) : nodeL(j);
     G[a][a] += 1 / r_ohms;
@@ -96,7 +96,7 @@ void setCouplers(const char *arg) {
   // ohm measurements for code 256: A 7450, B 8490, C 7820, D 8030, E 8250, F 7840, G 8570, H 7510.
   for (uint8_t x = 0; x < board::NUM_SPINS; x++) {
     const float rx = solveNodeResistance(x, r);
-    Serial.printf("  %c    %2u      %2u      %7.0f ohm  ", board::SPIN_LABEL[x],
+    Serial.printf("  %c    %2u      %2u      %7.0f ohm\n", board::SPIN_LABEL[x],
                   board::J1A_PIN_L[x], board::J1B_PIN_R[x], rx);
   }
   Serial.println("=== End setCouplers ===");

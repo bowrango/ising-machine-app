@@ -1,0 +1,113 @@
+% Problem matrix -> conductance matrix -> digipot network, from the coupler schematic (U16-U22,
+% W-B rheostats). Weights are illustrative: one shade per spin pair, the same in all three panels.
+% Build: lualatex coupling-network.tex && pdftoppm -png -r 300 -singlefile coupling-network.pdf coupling-network
+\documentclass[border=8pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Heros}
+\usepackage{amsmath}
+\usepackage{sansmath}
+\sansmath
+
+\definecolor{coupler}{HTML}{1A68AD}
+\definecolor{muted}{HTML}{9AA7B0}
+
+% Illustrative coupling strength (percent blue) for spin pair i<j, spins numbered A=1 .. H=8
+  \expandafter\def\csname w1-2\endcsname{70} \expandafter\def\csname w1-3\endcsname{40} \expandafter\def\csname w1-4\endcsname{80} \expandafter\def\csname w1-5\endcsname{20} \expandafter\def\csname w1-6\endcsname{30} \expandafter\def\csname w1-7\endcsname{100} \expandafter\def\csname w1-8\endcsname{30}
+  \expandafter\def\csname w2-3\endcsname{70} \expandafter\def\csname w2-4\endcsname{20} \expandafter\def\csname w2-5\endcsname{100} \expandafter\def\csname w2-6\endcsname{50} \expandafter\def\csname w2-7\endcsname{20} \expandafter\def\csname w2-8\endcsname{30}
+  \expandafter\def\csname w3-4\endcsname{80} \expandafter\def\csname w3-5\endcsname{80} \expandafter\def\csname w3-6\endcsname{30} \expandafter\def\csname w3-7\endcsname{50} \expandafter\def\csname w3-8\endcsname{30}
+  \expandafter\def\csname w4-5\endcsname{100} \expandafter\def\csname w4-6\endcsname{80} \expandafter\def\csname w4-7\endcsname{20} \expandafter\def\csname w4-8\endcsname{30}
+  \expandafter\def\csname w5-6\endcsname{50} \expandafter\def\csname w5-7\endcsname{20} \expandafter\def\csname w5-8\endcsname{80}
+  \expandafter\def\csname w6-7\endcsname{20} \expandafter\def\csname w6-8\endcsname{50}
+  \expandafter\def\csname w7-8\endcsname{20}
+
+% Loops over the 28 spin pairs i<j with \wv = that pair's shade and \odd = (j - i) mod 2.
+\newcommand{\forpairs}[1]{%
+  \foreach \i in {1,...,7} {
+    \pgfmathtruncatemacro{\first}{\i+1}
+    \foreach \j in {\first,...,8} {
+      \edef\wv{\csname w\i-\j\endcsname}
+      \pgfmathtruncatemacro{\odd}{mod(\j-\i,2)}
+      #1
+    }
+  }}
+
+\begin{document}
+\begin{tikzpicture}[
+    font=\small,
+    term/.style={circle, draw, line width=1pt, fill=white, inner sep=0, minimum size=5pt},
+    link/.style={line width=1pt},
+    subtitle/.style={font=\small\bfseries},
+    caption/.style={font=\scriptsize, align=center, anchor=north},
+    grid/.style={draw=muted, line width=0.4pt},
+    frame/.style={draw, line width=0.6pt},
+  ]
+  \def\dy{0.85}   % terminal spacing in the network
+  \def\ch{0.6}    % matrix cell height; cell (row r, column c) is centred at (c*\cw, -r*\ch)
+  \def\ytop{-0.875}  % centres the matrices on the terminal columns
+
+  % Grid and frame for an 8x8 matrix with column width \cw
+  \newcommand{\matrixgrid}{%
+    \foreach \k in {1,...,7} {
+      \draw[grid] (\k*\cw+0.5*\cw, 0.5*\ch) -- ++(0, -8*\ch);
+      \draw[grid] (0.5*\cw, -\k*\ch+0.5*\ch) -- ++(8*\cw, 0);
+    }
+    \draw[frame] (0.5*\cw, 0.5*\ch) rectangle ++(8*\cw, -8*\ch);}
+  \newcommand{\cell}[3]{\fill[coupler!#3!white] (#2*\cw-0.5*\cw, -#1*\ch-0.5*\ch) rectangle ++(\cw, \ch);}
+
+  % Problem matrix Q: one coupler per spin pair i<j (upper triangle)
+  \begin{scope}[shift={(0,\ytop)}]
+    \def\cw{0.6}
+    \node[subtitle] at (4.5*\cw, 1.75-\ytop) {Problem matrix};
+    \node[font=\small\bfseries] at (4.5*\cw, 1.9*\ch) {Q};
+    \foreach \s [count=\j from 1] in {A,...,H} {
+      \node[font=\small\bfseries] at (\j*\cw, \ch) {\s};
+      \node[font=\small\bfseries, anchor=east] at (0.5*\cw-0.05, -\j*\ch+\ch) {\s};
+    }
+    \forpairs{\pgfmathtruncatemacro{\r}{\i-1}\cell{\r}{\j}{\wv}}
+    \matrixgrid
+    \node[caption] at (4.5*\cw, -7.5*\ch-0.25) {QUBO $Q \sim 1/R$\\8 variables\\28 possible terms (no bias)};
+  \end{scope}
+
+  % Conductance matrix: row = L terminal, column = R terminal.
+  % Wiring rule (board::couplerJoinsLeftOfI): j-i odd joins i_L -- j_R, j-i even joins i_R -- j_L.
+  \begin{scope}[shift={(7.1,\ytop)}]
+    \def\cw{0.72}
+    \node[subtitle] at (4.5*\cw, 1.75-\ytop) {Conductance matrix};
+    \foreach \s [count=\j from 1] in {A,...,H} {
+      \node[font=\footnotesize\bfseries] at (\j*\cw, 0.95*\ch) {\s\_R};
+      \node[font=\footnotesize\bfseries, anchor=east] at (0.5*\cw-0.05, -\j*\ch+\ch) {\s\_L};
+    }
+    \forpairs{%
+      \ifnum\odd=1 \pgfmathtruncatemacro{\r}{\i-1}\cell{\r}{\j}{\wv}%
+      \else \pgfmathtruncatemacro{\r}{\j-1}\cell{\r}{\i}{\wv}\fi}
+    \matrixgrid
+    \node[caption] at (4.5*\cw, -7.5*\ch-0.25) {Pattern symmetric about the anti-diagonal\\Coupled at opposite terminals};
+  \end{scope}
+
+  % Digipot network. Terminals: L column at x=0, R column at x=6; J1 pin numbers in parentheses
+  \begin{scope}[shift={(15.9,0)}]
+    \node[subtitle] at (3, 1.75) {Digipot network};
+    \foreach \s/\pl/\pr [count=\n from 1] in {A/5/6, B/9/10, C/11/12, D/7/8, E/1/2, F/13/14, G/15/16, H/3/4} {
+      \coordinate (L\n) at (0, -\n*\dy+\dy);
+      \coordinate (R\n) at (6, -\n*\dy+\dy);
+      \node[anchor=east] at (-0.2, -\n*\dy+\dy) {\textbf{\s\_L} \scriptsize(\pl)};
+      \node[anchor=west] at (6.2, -\n*\dy+\dy) {\textbf{\s\_R} \scriptsize(\pr)};
+    }
+    \node[font=\small\bfseries] at (0, 1.05) {L};
+    \node[font=\small\bfseries] at (6, 1.05) {R};
+    \forpairs{%
+      \ifnum\odd=1 \draw[link, coupler!\wv!white] (L\i) -- (R\j);%
+      \else \draw[link, coupler!\wv!white] (R\i) -- (L\j);\fi}
+    \foreach \n in {1,...,8} {\node[term] at (L\n) {}; \node[term] at (R\n) {};}
+    \node[caption] at (3, -7*\dy-0.45) {%
+      7 $\times$ 4-channel digital potentiometers (10\,k$\Omega$, 8-bit)\\[3pt]
+      Program $R_{ij}$ (8-bit)};
+  \end{scope}
+
+  % Problem matrix -> conductance matrix -> digipot network
+  \foreach \x in {5.35, 13.45}
+    \draw[-{Stealth[length=7pt]}, line width=1pt] (\x, -3.5*\dy) -- ++(0.6, 0);
+\end{tikzpicture}
+\end{document}
