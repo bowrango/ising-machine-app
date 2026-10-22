@@ -90,7 +90,7 @@ void setCouplers(const char *arg) {
   Serial.println("=== Begin setCouplers ===");
   const int16_t codes[mcp4351::NUM_CHANNELS] = {code, code, code, code};
   for (uint8_t pot = 0; pot < board::NUM_DIGIPOTS; pot++) {
-    mcp4351::setChannels(pot, codes);
+    mcp4351::writeWipers(pot, codes);
   }
 
   const float r = mcp4351::R_W_OHMS + code * mcp4351::R_AB_OHMS / mcp4351::CODE_MAX;
