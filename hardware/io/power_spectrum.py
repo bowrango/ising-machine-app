@@ -77,7 +77,6 @@ def main():
     freq = next(iter(specs.values()))[0]
     n = len(next(iter(waves.values())))
     res = srate / n
-    print(f"{n} samples at {srate:.3g} Sa/s, resolution {res / 1e3:.3g} kHz")
 
     if args.write:
         path = f"spectrum_{datetime.now():%Y-%m-%d_%H%M%S}.csv"
@@ -86,16 +85,12 @@ def main():
             w.writerow(["freq"] + [f"{name}_dBV" for name in specs])
             for i in range(len(freq)):
                 w.writerow([f"{freq[i]:.6e}"] + [f"{20 * np.log10(v[i] + 1e-12):.2f}" for _, v in specs.values()])
-        print(f"wrote {path}")
 
     for name, (_, vrms) in specs.items():
         line, = plt.semilogx(freq[1:], 20 * np.log10(vrms[1:] + 1e-12), label=name)
         hs = harmonics(freq, vrms)
-        ref = 20 * np.log10(hs[0][2])
-        print(f"{name}: f0 {hs[0][1] / 1e6:.4f} MHz")
         for h, f, v in hs:
             level = 20 * np.log10(v)
-            print(f"  {h:2d}f0 {f / 1e6:8.3f} MHz  {level:6.1f} dBV  {level - ref:6.1f} dBc")
             plt.plot(f, level, "v", color=line.get_color(), ms=5)
             label = f"f0 {f / 1e6:.3f} MHz" if h == 1 else str(h)
             plt.annotate(label, (f, level), textcoords="offset points", xytext=(0, 6),
