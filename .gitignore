@@ -18,6 +18,10 @@ firmware/**/secrets.h
 
 # Local bench-test notes
 firmware/isingmachine/src/tests/TODO.md
+hardware/TODO.md
 
 # Python bytecode (hardware/io scripts)
 __pycache__/
+
+# Scope / spectrum / lock-sweep captures
+hardware/io/*.csv

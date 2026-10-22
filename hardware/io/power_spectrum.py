@@ -6,6 +6,7 @@
 
 Levels are RMS volts per bin (Hann window, corrected for tone amplitude), in dBV = 20 log10(Vrms).
 Resolution is sample_rate / samples; capture more cycles (slower timebase) for finer bins.
+Harmonics of the strongest tone are labelled on the plot and listed in dBc.
 """
 
 import argparse
@@ -24,6 +25,30 @@ def spectrum(x: np.ndarray, srate: float):
     X = np.fft.rfft((x - x.mean()) * w)
     vrms = np.abs(X) * 2 / w.sum() / np.sqrt(2)
     return np.fft.rfftfreq(len(x), 1 / srate), vrms
+
+
+def harmonics(freq: np.ndarray, vrms: np.ndarray, count: int = 10):
+    """[(n, freq Hz, Vrms)] for the strongest tone f0 and its harmonics n*f0 below Nyquist.
+
+    f0 is refined between bins by a parabolic fit to the log magnitude (Hann peak);
+    each harmonic is the largest bin within 5 bins of n*f0.
+    """
+    df = freq[1]
+    db = 20 * np.log10(vrms + 1e-12)
+    k = int(np.argmax(vrms[1:])) + 1
+    if 0 < k < len(db) - 1:
+        a, b, c = db[k - 1], db[k], db[k + 1]
+        k += 0.5 * (a - c) / (a - 2 * b + c)
+    f0 = k * df
+    out = []
+    for n in range(1, count + 1):
+        if n * f0 >= freq[-1]:
+            break
+        i = int(round(n * f0 / df))
+        lo, hi = max(i - 5, 1), min(i + 6, len(vrms))
+        j = lo + int(np.argmax(vrms[lo:hi]))
+        out.append((n, f0 if n == 1 else freq[j], vrms[j]))
+    return out
 
 
 def load_csv(path: str):
@@ -51,7 +76,8 @@ def main():
     specs = {name: spectrum(x, srate) for name, x in waves.items()}
     freq = next(iter(specs.values()))[0]
     n = len(next(iter(waves.values())))
-    print(f"{n} samples at {srate:.3g} Sa/s, resolution {srate / n / 1e3:.3g} kHz")
+    res = srate / n
+    print(f"{n} samples at {srate:.3g} Sa/s, resolution {res / 1e3:.3g} kHz")
 
     if args.write:
         path = f"spectrum_{datetime.now():%Y-%m-%d_%H%M%S}.csv"
@@ -63,7 +89,18 @@ def main():
         print(f"wrote {path}")
 
     for name, (_, vrms) in specs.items():
-        plt.semilogx(freq[1:], 20 * np.log10(vrms[1:] + 1e-12), label=name)
+        line, = plt.semilogx(freq[1:], 20 * np.log10(vrms[1:] + 1e-12), label=name)
+        hs = harmonics(freq, vrms)
+        ref = 20 * np.log10(hs[0][2])
+        print(f"{name}: f0 {hs[0][1] / 1e6:.4f} MHz")
+        for h, f, v in hs:
+            level = 20 * np.log10(v)
+            print(f"  {h:2d}f0 {f / 1e6:8.3f} MHz  {level:6.1f} dBV  {level - ref:6.1f} dBc")
+            plt.plot(f, level, "v", color=line.get_color(), ms=5)
+            label = f"f0 {f / 1e6:.3f} MHz" if h == 1 else str(h)
+            plt.annotate(label, (f, level), textcoords="offset points", xytext=(0, 6),
+                         ha="center", va="bottom", fontsize=8, color=line.get_color())
+    plt.title(f"{n} samples at {srate:.3g} Sa/s, resolution {res / 1e3:.3g} kHz")
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("dBV (RMS)")
     plt.grid(True, which="both", alpha=0.3)
