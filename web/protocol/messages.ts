@@ -1,4 +1,4 @@
-// Protocol v1 message types (SPEC.MD §4). The firmware mirrors these by hand.
+// Protocol v1 message types. The firmware mirrors these by hand.
 
 export const PROTOCOL_VERSION = 1;
 export const SPIN_COUNT = 8;

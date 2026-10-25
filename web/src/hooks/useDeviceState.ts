@@ -18,7 +18,7 @@ export interface DeviceState {
 
 const RATE_WINDOW_MS = 2000;
 
-/** Owns the browser WebSocket to /api/ws (SPEC.MD §6). */
+/** Owns the browser WebSocket to /api/ws. */
 export function useDeviceState(): DeviceState {
   const [presence, setPresence] = useState<Presence | null>(null);
   const [hello, setHello] = useState<Hello | null>(null);

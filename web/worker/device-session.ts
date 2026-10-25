@@ -12,7 +12,7 @@ import {
 
 const STALE_MS = 5000;
 
-// Single instance relaying the one device to all browsers (SPEC.MD §5.2).
+// Single instance relaying the one device to all browsers.
 export class DeviceSession extends DurableObject<Env> {
   private hello: Hello | null = null;
   private config: Config | null = null;
