@@ -15,24 +15,41 @@
 
 static constexpr size_t MAX_LINE = 64;
 
+// Opens every coupler so the oscillators run uncoupled, and reports any digipot that didn't confirm.
+static void disconnectCouplers() {
+  const uint8_t failed = couplers::disconnect();
+  if (!failed) {
+    Serial.println("All couplers disconnected");
+    return;
+  }
+  Serial.print("Disconnect failed on");
+  for (uint8_t pot = 0; pot < board::NUM_DIGIPOTS; pot++) {
+    if (failed & (1 << pot)) Serial.printf(" %s", board::DIGIPOT_LABEL[pot]);
+  }
+  Serial.println();
+}
+
 static void printHelp() {
   Serial.println("Commands:");
-  Serial.println("  samplePhases");
+  Serial.println("  samplePhases [shots]");
   Serial.println("  sweepDecoder");
   Serial.println("  sweepCouplers");
   Serial.println("  setCouplers <0..256>");
+  Serial.println("  disconnect");
   Serial.println("  help");
 }
 
 static void runCommand(const char *cmd) {
-  if (!strcmp(cmd, "samplePhases")) {
-    tests::samplePhases();
+  if (!strcmp(cmd, "samplePhases") || !strncmp(cmd, "samplePhases ", 13)) {
+    tests::samplePhases(cmd + 12);
   } else if (!strcmp(cmd, "sweepDecoder")) {
     tests::sweepDecoder();
   } else if (!strcmp(cmd, "sweepCouplers")) {
     tests::sweepCouplers();
   } else if (!strncmp(cmd, "setCouplers ", 12)) {
     tests::setCouplers(cmd + 12);
+  } else if (!strcmp(cmd, "disconnect")) {
+    disconnectCouplers();
   } else if (!strcmp(cmd, "help")) {
     printHelp();
   } else {
@@ -48,12 +65,7 @@ void setup() {
   Serial.println("\n[BOOT] Ising machine firmware");
 
   // Disconnect all couplers for simple reset
-  const uint8_t failed = couplers::disconnect();
-  if (failed) {
-    for (uint8_t pot = 0; pot < board::NUM_DIGIPOTS; pot++) {
-      if (failed & (1 << pot)) Serial.printf(" %s", board::DIGIPOT_LABEL[pot]);
-    }
-  }
+  disconnectCouplers();
   printHelp();
 }
 
