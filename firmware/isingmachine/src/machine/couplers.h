@@ -4,9 +4,11 @@
 
 namespace couplers {
 
-// Disconnects every coupler (W and B open on all channels) and reads back TCON to confirm.
-// Returns a bitmask of the digipots (bit = decoder address) whose readback didn't show W and B
-// open; 0 means every coupler is off.
+// Sets every coupler to code and reads it back.
+// Returns bitmask of the digipots (bit = decoder address) whose readback didn't match; 0 = success
+uint8_t setAll(int16_t code);
+
+// Disconnects every coupler. Returns the same bitmask
 uint8_t disconnect();
 
 }  // namespace couplers

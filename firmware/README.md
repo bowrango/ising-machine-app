@@ -27,7 +27,8 @@ At boot the firmware disconnects all couplers and prints a test menu. Type a com
 | `sweepCouplers` | Writes and reads back every code on every coupler |
 | `samplePhases [shots]` | Samples the shift register and prints each spin's agreement with A |
 | `sweepDecoder` | Steps the chip-select decoder for probing |
-| `setCouplers <0..256>` | Sets every coupler to one code and prints the expected resistance at each oscillator |
+| `setCouplers <0..256>` | Sets every coupler to one code |
+| `measureCouplers <0..256>` | Sets every coupler to one code and prints the expected resistance at each oscillator |
 | `disconnect` | Disconnects every coupler so the oscillators run uncoupled |
 
 ## Code layout

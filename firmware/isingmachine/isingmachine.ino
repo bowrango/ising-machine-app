@@ -8,33 +8,23 @@
 //   src/tests/              bench tests, run from the serial menu below
 // Hardware notes: firmware/README.md
 
+#include <assert.h>
+
 #include "src/drivers/bus.h"
+#include "src/drivers/mcp4351.h"
 #include "src/board.h"
 #include "src/machine/couplers.h"
 #include "src/tests/tests.h"
 
 static constexpr size_t MAX_LINE = 64;
 
-// Opens every coupler so the oscillators run uncoupled, and reports any digipot that didn't confirm.
-static void disconnectCouplers() {
-  const uint8_t failed = couplers::disconnect();
-  if (!failed) {
-    Serial.println("All couplers disconnected");
-    return;
-  }
-  Serial.print("Disconnect failed on");
-  for (uint8_t pot = 0; pot < board::NUM_DIGIPOTS; pot++) {
-    if (failed & (1 << pot)) Serial.printf(" %s", board::DIGIPOT_LABEL[pot]);
-  }
-  Serial.println();
-}
-
 static void printHelp() {
   Serial.println("Commands:");
   Serial.println("  samplePhases [shots]");
   Serial.println("  sweepDecoder");
   Serial.println("  sweepCouplers");
-  Serial.println("  setCouplers <0..256>");
+  Serial.println("  setCouplers [code]");
+  Serial.println("  measureCouplers [code]");
   Serial.println("  disconnect");
   Serial.println("  help");
 }
@@ -47,9 +37,15 @@ static void runCommand(const char *cmd) {
   } else if (!strcmp(cmd, "sweepCouplers")) {
     tests::sweepCouplers();
   } else if (!strncmp(cmd, "setCouplers ", 12)) {
-    tests::setCouplers(cmd + 12);
+    const char *arg = cmd + 12;
+    char *end;
+    const long code = strtol(arg, &end, 10);
+    assert(*arg && !*end && code >= 0 && code <= mcp4351::CODE_MAX);
+    couplers::setAll(code);
+  } else if (!strncmp(cmd, "measureCouplers ", 16)) {
+    tests::measureCouplers(cmd + 16);
   } else if (!strcmp(cmd, "disconnect")) {
-    disconnectCouplers();
+    couplers::disconnect();
   } else if (!strcmp(cmd, "help")) {
     printHelp();
   } else {
@@ -65,7 +61,7 @@ void setup() {
   Serial.println("\n[BOOT] Ising machine firmware");
 
   // Disconnect all couplers for simple reset
-  disconnectCouplers();
+  couplers::disconnect();
   printHelp();
 }
 

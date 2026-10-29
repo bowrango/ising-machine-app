@@ -1,8 +1,10 @@
 #include <Arduino.h>
+#include <assert.h>
 #include <math.h>
 
 #include "../board.h"
 #include "../drivers/mcp4351.h"
+#include "../machine/couplers.h"
 #include "tests.h"
 
 namespace tests {
@@ -80,28 +82,23 @@ float solveNodeResistance(uint8_t x, float r_ohms) {
 
 // Set every coupler to code and print the expected resistance at each
 // L and R oscillator header pin (oscillator board unplugged, coupler board powered).
-void setCouplers(const char *arg) {
-  const int16_t code = atoi(arg);
-  if (code < 0 || code > mcp4351::CODE_MAX) {
-    Serial.printf("Usage: setCouplers <0..%d>\n", mcp4351::CODE_MAX);
-    return;
-  }
+void measureCouplers(const char *arg) {
+  char *end;
+  const long code = strtol(arg, &end, 10);
+  assert(*arg && !*end && code >= 0 && code <= mcp4351::CODE_MAX);
 
-  Serial.println("=== Begin setCouplers ===");
-  const int16_t codes[mcp4351::NUM_CHANNELS] = {code, code, code, code};
-  for (uint8_t pot = 0; pot < board::NUM_DIGIPOTS; pot++) {
-    mcp4351::writeWipers(pot, codes);
-  }
+  Serial.println("=== Begin measureCouplers ===");
+  couplers::setAll(code);
 
   const float r = mcp4351::R_W_OHMS + code * mcp4351::R_AB_OHMS / mcp4351::CODE_MAX;
-  Serial.printf("  code %d = nominal %.0f ohms per coupler\n", code, r);
+  Serial.printf("  code %ld = nominal %.0f ohms per coupler\n", code, r);
   Serial.println("  osc  J1A(L)  J1B(R)  expected L-R");
   for (uint8_t x = 0; x < board::NUM_SPINS; x++) {
     const float rx = solveNodeResistance(x, r);
     Serial.printf("  %c    %2u      %2u      %7.0f ohm\n", board::SPIN_LABEL[x],
                   board::J1A_PIN_L[x], board::J1B_PIN_R[x], rx);
   }
-  Serial.println("=== End setCouplers ===");
+  Serial.println("=== End measureCouplers ===");
 }
 
 }  // namespace tests

@@ -8,6 +8,6 @@ void sweepDecoder();
 void sweepCouplers();
 // Sets all 28 couplers to the code in arg (0..256) and prints the expected L-R resistance at each
 // oscillator's header pins. Couplers stay set afterwards.
-void setCouplers(const char *arg);
+void measureCouplers(const char *arg);
 
 }  // namespace tests
