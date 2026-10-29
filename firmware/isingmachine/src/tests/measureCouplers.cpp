@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <assert.h>
 #include <math.h>
 
 #include "../board.h"
@@ -82,16 +81,12 @@ float solveNodeResistance(uint8_t x, float r_ohms) {
 
 // Set every coupler to code and print the expected resistance at each
 // L and R oscillator header pin (oscillator board unplugged, coupler board powered).
-void measureCouplers(const char *arg) {
-  char *end;
-  const long code = strtol(arg, &end, 10);
-  assert(*arg && !*end && code >= 0 && code <= mcp4351::CODE_MAX);
-
+void measureCouplers(int16_t code) {
   Serial.println("=== Begin measureCouplers ===");
   couplers::setAll(code);
 
   const float r = mcp4351::R_W_OHMS + code * mcp4351::R_AB_OHMS / mcp4351::CODE_MAX;
-  Serial.printf("  code %ld = nominal %.0f ohms per coupler\n", code, r);
+  Serial.printf("  code %d = nominal %.0f ohms per coupler\n", code, r);
   Serial.println("  osc  J1A(L)  J1B(R)  expected L-R");
   for (uint8_t x = 0; x < board::NUM_SPINS; x++) {
     const float rx = solveNodeResistance(x, r);

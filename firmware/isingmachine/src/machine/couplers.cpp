@@ -5,6 +5,8 @@
 
 namespace couplers {
 
+bool verifyCode(long code) { return code >= 0 && code <= mcp4351::CODE_MAX; }
+
 uint8_t setAll(int16_t code) {
   const int16_t codes[mcp4351::NUM_CHANNELS] = {code, code, code, code};
   uint8_t failed = 0;

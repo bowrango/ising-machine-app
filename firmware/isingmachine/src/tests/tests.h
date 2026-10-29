@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 namespace tests {
 
@@ -6,8 +7,8 @@ namespace tests {
 void samplePhases(const char *arg);
 void sweepDecoder();
 void sweepCouplers();
-// Sets all 28 couplers to the code in arg (0..256) and prints the expected L-R resistance at each
+// Sets all 28 couplers to code (0..256) and prints the expected L-R resistance at each
 // oscillator's header pins. Couplers stay set afterwards.
-void measureCouplers(const char *arg);
+void measureCouplers(int16_t code);
 
 }  // namespace tests

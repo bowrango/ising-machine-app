@@ -8,8 +8,6 @@
 //   src/tests/              bench tests, run from the serial menu below
 // Hardware notes: firmware/README.md
 
-#include <assert.h>
-
 #include "src/drivers/bus.h"
 #include "src/drivers/mcp4351.h"
 #include "src/board.h"
@@ -17,6 +15,18 @@
 #include "src/tests/tests.h"
 
 static constexpr size_t MAX_LINE = 64;
+
+// Parses a coupler code from arg. Prints an error and returns false if it isn't a valid code.
+static bool parseCode(const char *arg, int16_t &code) {
+  char *end;
+  const long n = strtol(arg, &end, 10);
+  if (!*arg || *end || !couplers::verifyCode(n)) {
+    Serial.printf("Error: code must be 0..%d\n", mcp4351::CODE_MAX);
+    return false;
+  }
+  code = n;
+  return true;
+}
 
 static void printHelp() {
   Serial.println("Commands:");
@@ -37,13 +47,11 @@ static void runCommand(const char *cmd) {
   } else if (!strcmp(cmd, "sweepCouplers")) {
     tests::sweepCouplers();
   } else if (!strncmp(cmd, "setCouplers ", 12)) {
-    const char *arg = cmd + 12;
-    char *end;
-    const long code = strtol(arg, &end, 10);
-    assert(*arg && !*end && code >= 0 && code <= mcp4351::CODE_MAX);
-    couplers::setAll(code);
+    int16_t code;
+    if (parseCode(cmd + 12, code)) couplers::setAll(code);
   } else if (!strncmp(cmd, "measureCouplers ", 16)) {
-    tests::measureCouplers(cmd + 16);
+    int16_t code;
+    if (parseCode(cmd + 16, code)) tests::measureCouplers(code);
   } else if (!strcmp(cmd, "disconnect")) {
     couplers::disconnect();
   } else if (!strcmp(cmd, "help")) {
