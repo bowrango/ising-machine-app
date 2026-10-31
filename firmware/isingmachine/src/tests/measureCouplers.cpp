@@ -83,7 +83,7 @@ float solveNodeResistance(uint8_t x, float r_ohms) {
 // L and R oscillator header pin (oscillator board unplugged, coupler board powered).
 void measureCouplers(int16_t code) {
   Serial.println("=== Begin measureCouplers ===");
-  couplers::setAll(code);
+  couplers::writeCode(code);
 
   const float r = mcp4351::R_W_OHMS + code * mcp4351::R_AB_OHMS / mcp4351::CODE_MAX;
   Serial.printf("  code %d = nominal %.0f ohms per coupler\n", code, r);
