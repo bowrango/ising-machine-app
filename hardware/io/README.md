@@ -1,7 +1,7 @@
 # Bench instruments
 
 Python scripts that drive the bench instruments over raw SCPI sockets (port 5025), and the ESP32
-through its serial CLI (`device.py`). `binary_maxcut.py` solves max-cut on binary graphs through it; `phase.py`
+through its serial CLI (`device.py`). `run_maxcut.py` solves max-cut problems through it; `phase.py`
 measures frequency and relative phase on the scope.
 
 ## Network
