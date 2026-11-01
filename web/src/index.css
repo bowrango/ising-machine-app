@@ -1,5 +1,5 @@
 :root {
-  --bg: #fafafa;
+  --bg: #fff;
   --fg: #1a1a1a;
   --muted: #6b6b6b;
   --line: #d4d4d4;
@@ -7,17 +7,7 @@
   --green: #16a34a;
   --red: #dc2626;
   --cell: 44px;
-  color-scheme: light dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141414;
-    --fg: #ededed;
-    --muted: #9a9a9a;
-    --line: #3a3a3a;
-    --coupling: 96, 165, 250;
-  }
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -83,7 +73,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   height: var(--cell);
   display: grid;
   place-items: center;
-  border: 2px dashed var(--line);
+  border: 2px dashed var(--muted);
   border-radius: 4px;
   margin-bottom: 6px;
   font-size: 11px;
