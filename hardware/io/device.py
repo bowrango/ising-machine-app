@@ -140,12 +140,10 @@ class ESP32:
         return {"codes": codes, "state": state, "cut": cut_value(problem, state), "max": best,
                 "best_state": best_state, "corr": corr}
 
-    def publish(self, name: str, problem: dict[str, float], result: dict, url: str = PUBLISH_URL,
-                token: str | None = None):
-        """POST a solve result to the site (Result in web/protocol/messages.ts). name is the graph preset;
-        token defaults to the DEVICE_TOKEN env var."""
-        token = token or os.environ.get("DEVICE_TOKEN")
-        assert token, "set DEVICE_TOKEN to publish"
+    def publish(self, name: str, problem: dict[str, float], result: dict, url: str = PUBLISH_URL):
+        """POST a solve result to the site (Result in web/protocol/messages.ts), authorised by the
+        DEVICE_TOKEN env var. name is the graph preset."""
+        token = os.environ.get("DEVICE_TOKEN")
         msg = {"type": "result", "name": name, "problem": problem,
                "corr": {c: result["corr"][c] for c in result["state"]},
                "found": {"state": result["state"], "cut": result["cut"]},
