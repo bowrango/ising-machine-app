@@ -55,14 +55,14 @@ class IsingMachine:
         a[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
         a[4] = a[5] = termios.B115200
         termios.tcsetattr(self.fd, termios.TCSANOW, a)
-        self._read(1.0)  # drop any boot banner or stale output
+        termios.tcflush(self.fd, termios.TCIFLUSH)  # drop stale output
 
     def _read(self, timeout: float, until: str | None = None) -> str:
         """Read until `until` appears or timeout seconds pass with no data."""
         buf = b""
         last = time.time()
         while time.time() - last < timeout:
-            if select.select([self.fd], [], [], 0.05)[0]:
+            if select.select([self.fd], [], [], 0.005)[0]:
                 try:
                     buf += os.read(self.fd, 4096)
                 except BlockingIOError:  # select can report a byte another reader then took
@@ -86,13 +86,14 @@ class IsingMachine:
         deadline = time.time() + timeout
         reply: list[str] = []
         while time.time() < deadline:
-            buf += self._read(0.05)
+            buf += self._read(0.005)
             done = [line.strip() for line in buf.split("\n")[:-1]]  # complete lines only
             if cmd in done:
                 reply = done[done.index(cmd) + 1:]
                 if len(reply) >= lines or any(r.startswith(("Error", "Unknown command")) for r in reply):
                     break
-        buf += self._read(0.05)  # an error can follow a reply that looked complete
+        if not lines:
+            buf += self._read(0.01)  # a command with no reply can still print an error after its echo
         done = [line.strip() for line in buf.split("\n")]
         reply = [line for line in done[done.index(cmd) + 1:] if line] if cmd in done else reply
         errors = [line for line in reply if line.startswith(("Error", "Unknown command"))]
@@ -132,8 +133,7 @@ class IsingMachine:
         """Program problem, sample, and score the majority phases (vs the first spin) against the max cut."""
         codes = to_codes(problem)
         spins = "".join(sorted(set("".join(codes))))
-        self.disconnect()
-        self.write_weighted_graph(codes)
+        self.write_weighted_graph(codes)  # also disconnects every coupler not in codes
         corr = self.sample(shots)[spins[0]]  # fix first spin as the reference
         state = {c: "+" if corr[c] >= 0 else "-" for c in spins}
         best, best_state = max_cut(problem, spins)
