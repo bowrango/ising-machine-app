@@ -1,0 +1,36 @@
+* Oscillator start-up: cross-coupled SN74HC240 LC oscillator (generated with oscillator.asc).
+X1 l y1 hcinv
+R1 r y1 R=if(time<Ton,1G,Rout+Rs)
+X2 r y2 hcinv
+R2 y2 l R=if(time<Ton,1G,Rout+Rs)
+L1 rl l {Lt}
+Resr r rl {2*pi*1.05e6*Lt/Q}
+C1 r l {Ct}
+Cl l 0 {Cnode}
+Rl l 0 10Meg
+Dlh l vcc DCLAMP
+Dll 0 l DCLAMP
+Cr r 0 {Cnode+1p}
+Rr r 0 10Meg
+Drh r vcc DCLAMP
+Drl 0 r DCLAMP
+Vcc vcc 0 {Vcc}
+* X1/X2: HC240 inverters (hcinv: tanh transfer, gain at Vcc/2). R1/R2: Rout + 1k, open until SW1 enables the outputs at Ton.
+* Cr: 1 pF imbalance so the symmetric circuit can start in simulation.
+.subckt hcinv in out
+B1 out 0 V=Vcc/2*(1-tanh(2*gain*(V(in)-Vcc/2)/Vcc))
+.ends hcinv
+.param Lt=30.6u Q=40 Ct=750p Rs=1k Rout=60 Vcc=3.3 gain=30 Cnode=10p Ton=5u
+.model DCLAMP D(Is=1e-14 N=1 Rs=10)
+.tran 0 60u 0 2n
+.meas tran t1 when V(l,r)=0 rise=40
+.meas tran t2 when V(l,r)=0 rise=50
+.meas tran freq param 10/(t2-t1)
+.meas tran vmin min V(l) from 40u to 60u
+.meas tran vmax max V(l) from 40u to 60u
+.meas tran vpp param vmax-vmin
+.meas tran tstart when V(l,r)=1 rise=1
+.meas tran startup param tstart-Ton
+.meas tran tfull when V(l,r)=3.06 rise=1
+.meas tran full param tfull-Ton
+.end

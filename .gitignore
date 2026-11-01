@@ -27,3 +27,8 @@ __pycache__/
 hardware/io/*.csv
 hardware/io/spectrum/
 hardware/io/maxcut/
+
+# LTspice simulation output
+hardware/sim/*.raw
+hardware/sim/*.log
+hardware/sim/*.net
