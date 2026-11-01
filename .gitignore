@@ -23,5 +23,7 @@ hardware/TODO.md
 # Python bytecode (hardware/io scripts)
 __pycache__/
 
-# Scope / spectrum / lock-sweep captures
+# Scope / lock-sweep captures, and power_spectrum.py / run_maxcut.py output
 hardware/io/*.csv
+hardware/io/spectrum/
+hardware/io/maxcut/

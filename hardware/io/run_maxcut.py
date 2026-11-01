@@ -11,9 +11,11 @@ import csv
 import random
 from datetime import datetime
 from itertools import combinations
+from pathlib import Path
 
 from device import ESP32
 
+OUT_DIR = Path(__file__).parent / "maxcut"
 SPINS = "ABCDEFGH"
 SCOPE_SPINS = "ABCD"  # A_L..D_L on scope CH1..CH4
 W_MAX = 255  # largest random weight
@@ -100,7 +102,8 @@ def main():
         esp.close()
 
     if args.write:
-        path = f"maxcut_{datetime.now():%Y-%m-%d_%H%M%S}.csv"
+        OUT_DIR.mkdir(exist_ok=True)
+        path = OUT_DIR / f"maxcut_{datetime.now():%Y-%m-%d_%H%M%S}.csv"
         with open(path, "w", newline="") as f:
             w = csv.writer(f)
             scoped = [f"{k}_{s}" for s in SCOPE_SPINS[1:] for k in ("df", "phase")]

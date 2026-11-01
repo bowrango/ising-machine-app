@@ -1,7 +1,7 @@
 """Power spectrum of Siglent scope channels (live via scope.py, or from a scope.py CSV). Needs numpy + matplotlib.
 
     python power_spectrum.py 1 2                          # live: plot
-    python power_spectrum.py 1 --write                    # also write spectrum_<datetime>.csv
+    python power_spectrum.py 1 --write                    # also write spectrum/spectrum_<datetime>.csv
     python power_spectrum.py --read scope_<datetime>.csv  # from a saved scope.py capture
 
 Levels are RMS volts per bin (Hann window, corrected for tone amplitude), in dBV = 20 log10(Vrms).
@@ -12,11 +12,14 @@ Harmonics of the strongest tone are labelled on the plot and listed in dBc.
 import argparse
 import csv
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 import scope
+
+OUT_DIR = Path(__file__).parent / "spectrum"
 
 
 def spectrum(x: np.ndarray, srate: float):
@@ -79,7 +82,8 @@ def main():
     res = srate / n
 
     if args.write:
-        path = f"spectrum_{datetime.now():%Y-%m-%d_%H%M%S}.csv"
+        OUT_DIR.mkdir(exist_ok=True)
+        path = OUT_DIR / f"spectrum_{datetime.now():%Y-%m-%d_%H%M%S}.csv"
         with open(path, "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["freq"] + [f"{name}_dBV" for name in specs])

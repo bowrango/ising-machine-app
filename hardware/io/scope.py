@@ -30,33 +30,37 @@ def number(reply: str) -> float:
 def read(host: str, channels: list[int]):
     """Return (time, {ch: volts}, sample_rate) for the waveforms in acquisition memory."""
     with socket.create_connection((host, PORT), timeout=10) as s:
-        f = s.makefile("rwb")
+        return read_from(s.makefile("rwb"), channels)
 
-        def send(cmd):
-            f.write(cmd.encode() + b"\n")
-            f.flush()
 
-        def query(cmd):
-            send(cmd)
-            return f.readline().decode().strip()
+def read_from(f, channels: list[int]):
+    """read() over an already open connection f (binary file from socket.makefile("rwb"))."""
 
-        send("CHDR OFF")
-        tdiv = number(query("TDIV?"))
-        delay = number(query("TRDL?"))
-        srate = number(query("SARA?"))
+    def send(cmd):
+        f.write(cmd.encode() + b"\n")
+        f.flush()
 
-        waves = {}
-        for ch in channels:
-            vdiv = number(query(f"C{ch}:VDIV?"))
-            offset = number(query(f"C{ch}:OFST?"))
-            send(f"C{ch}:WF? DAT2")
-            # Reply: DAT2,#9<9-digit length><int8 samples>\n\n
-            while f.read(1) != b"#":
-                pass
-            ndigits = int(f.read(1))
-            raw = f.read(int(f.read(ndigits)))
-            f.read(2)
-            waves[ch] = [(b - 256 if b > 127 else b) * vdiv / 25 - offset for b in raw]
+    def query(cmd):
+        send(cmd)
+        return f.readline().decode().strip()
+
+    send("CHDR OFF")
+    tdiv = number(query("TDIV?"))
+    delay = number(query("TRDL?"))
+    srate = number(query("SARA?"))
+
+    waves = {}
+    for ch in channels:
+        vdiv = number(query(f"C{ch}:VDIV?"))
+        offset = number(query(f"C{ch}:OFST?"))
+        send(f"C{ch}:WF? DAT2")
+        # Reply: DAT2,#9<9-digit length><int8 samples>\n\n
+        while f.read(1) != b"#":
+            pass
+        ndigits = int(f.read(1))
+        raw = f.read(int(f.read(ndigits)))
+        f.read(2)
+        waves[ch] = [(b - 256 if b > 127 else b) * vdiv / 25 - offset for b in raw]
 
     n = min(len(w) for w in waves.values())
     t0 = -delay - tdiv * GRID / 2
