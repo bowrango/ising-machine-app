@@ -1,7 +1,7 @@
 """Solve max-cut problems on the device and report the cut vs the max cut.
 
-    python run_maxcut.py ring4b ring8b bipart8b
-    python run_maxcut.py bipart8w rand8b rand8w --seed 3
+    python run_maxcut.py ring4b ring8b cal_ring8b cube8b cal_cube8b bipart8b cal_bipart8b full8b
+    python run_maxcut.py ring8w cal_ring8w bipart8w full8w --seed 3
     python run_maxcut.py ring4b --scope --write
     python run_maxcut.py bipart8w --publish       # uses DEVICE_TOKEN from the environment
 """
@@ -19,32 +19,46 @@ OUT_DIR = Path(__file__).parent / "maxcut"
 SPINS = "ABCDEFGH"
 SCOPE_SPINS = "ABCD"  # A_L..D_L on scope CH1..CH4
 W_MAX = 255  # largest random weight
+RING8 = ["AB", "BC", "CD", "DE", "EF", "FG", "GH", "HA"]
+# Calibrated order: neighbours' measured free-running frequencies within ~41 kHz, so it locks without SYNC.
+CAL_RING8 = ["AD", "DC", "CE", "EH", "HB", "BG", "GF", "FA"]
+# Cube: spins A..H are corners 000..111, joined when they differ in one bit. Bipartite: ADFG vs BCEH.
+CUBE8 = [a + b for i, a in enumerate(SPINS) for j, b in enumerate(SPINS) if i < j and bin(i ^ j).count("1") == 1]
+# Calibrated cube: oscillators placed on corners to minimise the largest neighbour frequency gap
+# (43.7 kHz, G-H; 58.1 kHz for CUBE8). Bipartite: ADEG vs BCFH.
+CAL_CUBE8 = ["AB", "AC", "AF", "BD", "BG", "CD", "CE", "DH", "EF", "EH", "FG", "GH"]
+BIPART8 = [a + b for a in "ABCD" for b in "EFGH"]  # K4,4: ABCD vs EFGH
+# Calibrated K4,4: the split minimising the largest cross gap (46.3 kHz; 58.1 kHz for BIPART8).
+CAL_BIPART8 = ["".join(sorted(a + b)) for a in "ABFH" for b in "CDEG"]
 
 
-def rand8b(rng: random.Random) -> dict[str, int]:
-    """Each pair of spins an edge with probability 1/2."""
-    return {a + b: 1 for a, b in combinations(SPINS, 2) if rng.random() < 0.5}
+def weighted(edges: list[str]):
+    """edges with a uniform random weight each, 1..W_MAX so no edge is disconnected."""
+    return lambda rng: {e: rng.randint(1, W_MAX) for e in edges}
 
 
-def bipart8w(rng: random.Random) -> dict[str, int]:
-    """K4,4 (ABCD vs EFGH) with a uniform random weight per edge."""
-    return {a + b: rng.randint(0, W_MAX) for a in "ABCD" for b in "EFGH"}
-
-
-def rand8w(rng: random.Random) -> dict[str, int]:
-    """Every pair of spins an edge with a uniform random weight."""
+def full8w(rng: random.Random) -> dict[str, int]:
+    """Complete graph K8 with a uniform random weight per edge."""
     return {a + b: rng.randint(0, W_MAX) for a, b in combinations(SPINS, 2)}
 
 
 # Problems: weight per edge. b = binary (unit weights), w = weighted; the random ones take an RNG.
 GRAPHS = {
     "ring4b": {"AB": 1, "BC": 1, "CD": 1, "DA": 1},
-    # Order keeps neighbours within ~41 kHz of each other so the ring locks without SYNC.
-    "ring8b": {"AD": 1, "DC": 1, "CE": 1, "EH": 1, "HB": 1, "BG": 1, "GF": 1, "FA": 1},
-    "bipart8b": {a + b: 1 for a in "ABCD" for b in "EFGH"},  # K4,4: ABCD vs EFGH
-    "bipart8w": bipart8w,
-    "rand8b": rand8b,
-    "rand8w": rand8w,
+    "ring8b": dict.fromkeys(RING8, 1),
+    "ring8w": weighted(RING8),
+    "cal_ring8b": dict.fromkeys(CAL_RING8, 1),
+    "cal_ring8w": weighted(CAL_RING8),
+    "cube8b": dict.fromkeys(CUBE8, 1),
+    "cube8w": weighted(CUBE8),
+    "cal_cube8b": dict.fromkeys(CAL_CUBE8, 1),
+    "cal_cube8w": weighted(CAL_CUBE8),
+    "bipart8b": dict.fromkeys(BIPART8, 1),
+    "bipart8w": weighted(BIPART8),
+    "cal_bipart8b": dict.fromkeys(CAL_BIPART8, 1),
+    "cal_bipart8w": weighted(CAL_BIPART8),
+    "full8b": dict.fromkeys((a + b for a, b in combinations(SPINS, 2)), 1),  # K8
+    "full8w": full8w,
 }
 
 
