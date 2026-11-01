@@ -133,7 +133,8 @@ class IsingMachine:
         """Program problem, sample, and score the majority phases (vs the first spin) against the max cut."""
         codes = to_codes(problem)
         spins = "".join(sorted(set("".join(codes))))
-        self.write_weighted_graph(codes)  # also disconnects every coupler not in codes
+        self.disconnect() # reset
+        self.write_weighted_graph(codes)
         corr = self.sample(shots)[spins[0]]  # fix first spin as the reference
         state = {c: "+" if corr[c] >= 0 else "-" for c in spins}
         best, best_state = max_cut(problem, spins)
