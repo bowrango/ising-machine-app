@@ -1,45 +1,34 @@
 # ising-machine-app
 
-An 8-spin oscillator Ising machine whose max-cut results are published to [isingmachine.app](https://isingmachine.app). Firmware and boards: [`firmware/README.md`](firmware/README.md).
+An 8-spin oscillator Ising machine that solves max-cut problems in hardware. Results are published to [isingmachine.app](https://isingmachine.app).
 
 ```
-ESP32 ──serial──▶ Mac (hardware/io) ──POST /api/result──▶ Worker ──▶ DeviceSession (Durable Object) ──wss /api/ws──▶ browsers
+Mac (hardware/io) ──serial──▶ ESP32 ──SPI──▶ couplers + comparators
+        └──POST /api/result──▶ isingmachine.app
 ```
 
-The bench scripts solve a problem on the ESP32 over serial and POST the result to a Cloudflare Worker. A single Durable Object keeps the latest result and relays new ones to every browser. The site is public and read-only.
+## Solving max-cut
 
-## Setup
+[`hardware/io/device.py`](hardware/io/device.py) is the Python interface to the device. A problem is a weight per edge between spins `A`–`H`; `solve` programs it on the couplers, samples the oscillator phases, and scores the read-out against the brute-force max cut.
+```python
+from device import IsingMachine
 
+machine = IsingMachine()                        # open device serial port
+problem = {"AB": 1, "BC": 1, "CD": 1, "DA": 1}  # define problem
+r = machine.solve(problem)
+machine.publish("ring4b", problem, r)           # POST result to isingmachine.app
+machine.close()
 ```
-cd web
-npm install
-npm run dev       # runs the site, Worker and Durable Object locally
-npm run deploy    # builds and deploys to Cloudflare
+
+[`run_maxcut.py`](hardware/io/run_maxcut.py) runs preset problems (`ring4b`, `ring8b`, `bipart8b`, `bipart8w`, `rand8b`, `rand8w`):
 ```
-
-| | Dev | Prod |
-|---|---|---|
-| Browser | `http://localhost:5173` | `https://isingmachine.app` |
-| Publish endpoint | `http://localhost:5173/api/result` | `https://isingmachine.app/api/result` |
-| `DEVICE_TOKEN` | `web/.dev.vars` | `wrangler secret put DEVICE_TOKEN` |
-
-## Publishing results
-
-`python3 hardware/io/run_maxcut.py <graph> --publish` POSTs each result to `/api/result` with `Authorization: Bearer $DEVICE_TOKEN`. The body is a `Result` from [`web/protocol/messages.ts`](web/protocol/messages.ts); browsers get it over `/api/ws` stamped with `receivedMs`.
-
-## Routes
-
-| Route | Use |
-|---|---|
-| `/api/result` | POST a result (bearer token) |
-| `/api/ws` | browser WebSocket |
-| `/api/state` | JSON snapshot of the latest result |
-| `/api/health` | health check |
+python3 hardware/io/run_maxcut.py ring8b bipart8w --publish
+```
 
 ## Layout
 
 ```
-web/         Cloudflare site: React app (src/), Worker + Durable Object (worker/), message types (protocol/)
-firmware/    ESP32 sketch (serial CLI)
-hardware/    schematics and bench scripts
+hardware/    schematics and bench scripts (hardware/io: device.py, run_maxcut.py)
+firmware/    ESP32 sketch exposing the serial CLI that device.py drives (firmware/README.md)
+web/         isingmachine.app on Cloudflare (web/README.md)
 ```

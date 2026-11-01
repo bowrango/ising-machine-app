@@ -13,7 +13,7 @@ from datetime import datetime
 from itertools import combinations
 from pathlib import Path
 
-from device import ESP32
+from device import IsingMachine
 
 OUT_DIR = Path(__file__).parent / "maxcut"
 SPINS = "ABCDEFGH"
@@ -75,7 +75,7 @@ def main():
     args = p.parse_args()
 
     seed = args.seed if args.seed is not None else random.randrange(10000)
-    esp = ESP32()
+    machine = IsingMachine()
     rows = []
     try:
         for name in args.graphs:
@@ -83,9 +83,9 @@ def main():
             graph = GRAPHS[name]
             problem = graph(random.Random(seed)) if callable(graph) else graph
             order = "".join(sorted(set("".join(problem))))
-            r = esp.solve(problem, args.shots)
+            r = machine.solve(problem, args.shots)
             if args.publish:
-                esp.publish(name, problem, r)
+                machine.publish(name, problem, r)
             state = "".join(r["state"][c] for c in order)
             best = "".join(r["best_state"][c] for c in order)
             label = f"{name} seed {seed}" if callable(graph) else name
@@ -98,8 +98,8 @@ def main():
             rows.append({**r, "graph": name, "seed": seed if callable(graph) else "", "order": order,
                          "state": state, "best_state": best, "problem": problem})
     finally:
-        esp.disconnect()
-        esp.close()
+        machine.disconnect()
+        machine.close()
 
     if args.write:
         OUT_DIR.mkdir(exist_ok=True)

@@ -47,7 +47,7 @@ def find_port() -> str:
     return ports[0]
 
 
-class ESP32:
+class IsingMachine:
     def __init__(self, port: str | None = None):
         self.fd = os.open(port or find_port(), os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
         a = termios.tcgetattr(self.fd)
@@ -160,7 +160,7 @@ class ESP32:
 
 
 if __name__ == "__main__":
-    esp = ESP32()
+    machine = IsingMachine()
     cmd = " ".join(sys.argv[1:])
-    print(esp._command(cmd, until="=== End", timeout=2.0), end="")
-    esp.close()
+    print(machine._command(cmd, until="=== End", timeout=2.0), end="")
+    machine.close()

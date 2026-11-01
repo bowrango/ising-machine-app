@@ -1,6 +1,6 @@
 # Ising Machine Firmware
 
-ESP32 Feather V2 firmware for the 8-spin oscillator Ising machine. The web server and device protocol are in the [main README](../README.md). Schematics are in [`../hardware/schematic/`](../hardware/schematic/).
+ESP32 Feather V2 firmware for the 8-spin oscillator Ising machine. The Python device API is in the [main README](../README.md), the website in [`web/README.md`](../web/README.md). Schematics are in [`../hardware/schematic/`](../hardware/schematic/).
 
 The device is composed of two boards:
 
