@@ -1,70 +1,34 @@
-// Protocol v1 message types. The firmware mirrors these by hand.
+// Protocol message types. hardware/io/device.py mirrors Result by hand.
 
-export const PROTOCOL_VERSION = 1;
 export const SPIN_COUNT = 8;
 export const SPIN_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
-export const CODE_MAX = 256;
 
-// Device → server
+export type Phase = "+" | "-";
 
-export interface Hello {
-  type: "hello";
-  protocol: number;
-  firmware: string;
-  bootId: string;
+/** A max-cut solve, POSTed to /api/result: the problem and the device's read-out vs the ground truth. */
+export interface Result {
+  type: "result";
+  /** Graph preset, e.g. "ring8b" or "rand8w". */
+  name: string;
+  /** Problem weight per edge, e.g. { AB: 1, BC: 3 }. */
+  problem: Record<string, number>;
+  /** Read-out phase per spin and its cut value. */
+  found: { state: Record<string, Phase>; cut: number };
+  /** Max cut and an optimal state. */
+  max: { state: Record<string, Phase>; cut: number };
+  /** Each spin's correlation with the reference spin, -1 (antiphase) … 1 (in phase). */
+  corr: Record<string, number>;
 }
 
-export interface Coupler {
-  i: number;
-  j: number;
-  /** 0 (strongest) … 256 (weakest); null = disconnected. */
-  code: number | null;
+/** A Result as the server relays it, stamped with when it arrived. */
+export interface Published extends Result {
+  receivedMs: number;
 }
 
-export interface Config {
-  type: "config";
-  configId: number;
-  preset: "off" | "ring8" | null;
-  /** 28 entries, pairs i<j in lexicographic order. */
-  couplers: Coupler[];
-}
-
-export interface State {
-  type: "state";
-  seq: number;
-  uptimeMs: number;
-  configId: number;
-  raw: number;
-  /** Gauge-fixed: spins[0] = +1. */
-  spins: (1 | -1)[];
-  /** Percent of snapshots agreeing with each spin. */
-  agreement: number[];
-  oscillating: boolean;
-}
-
-export type DeviceMessage = Hello | Config | State;
-
-// Server → browser (plus forwarded DeviceMessages)
-
-export interface Presence {
-  type: "presence";
-  online: boolean;
-  lastSeenMs: number | null;
-}
-
-export type BrowserMessage = DeviceMessage | Presence;
-
-// Server → device
-
-export interface Viewers {
-  type: "viewers";
-  count: number;
-}
+/** Server → browser over /api/ws. */
+export type BrowserMessage = Published;
 
 /** JSON snapshot served by GET /api/state. */
 export interface Snapshot {
-  presence: Presence;
-  hello: Hello | null;
-  config: Config | null;
-  state: State | null;
+  result: Published | null;
 }

@@ -8,7 +8,8 @@ export default {
       case "/api/health":
         return Response.json({ ok: true });
 
-      case "/api/device":
+      case "/api/result":
+        if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
         // Fail closed if the secret isn't configured.
         if (!env.DEVICE_TOKEN || request.headers.get("Authorization") !== `Bearer ${env.DEVICE_TOKEN}`) {
           return new Response("Unauthorized", { status: 401 });

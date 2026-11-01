@@ -1,27 +1,19 @@
-import type { Hello, Presence } from "../../protocol/messages";
-import type { Stats } from "../hooks/useDeviceState";
+import type { Published } from "../../protocol/messages";
 
 interface Props {
-  presence: Presence | null;
-  hello: Hello | null;
-  stats: Stats;
-  seq: number | undefined;
+  connected: boolean;
+  result: Published | null;
 }
 
-export function StatusBar({ presence, hello, stats, seq }: Props) {
-  const online = stats.connected && !!presence?.online;
-  const source = online ? "Device online" : "No device";
-
+export function StatusBar({ connected, result }: Props) {
   let detail: string;
-  if (!stats.connected) detail = "Server unreachable";
-  else if (online) detail = `fw ${hello?.firmware ?? "?"} · seq ${seq ?? "–"} · ${stats.rateHz.toFixed(1)} Hz · ${stats.dropped} dropped`;
-  else if (presence?.lastSeenMs) detail = `Last seen ${new Date(presence.lastSeenMs).toLocaleString()}`;
-  else detail = "Never connected";
+  if (!connected) detail = "Server unreachable";
+  else if (result) detail = `Last result ${new Date(result.receivedMs).toLocaleString()}`;
+  else detail = "No results yet";
 
   return (
     <div className="status">
-      <span className={`dot ${online ? "online" : "offline"}`} aria-hidden />
-      <strong>{source}</strong>
+      <span className={`dot ${connected ? "online" : "offline"}`} aria-hidden />
       <span className="muted">{detail}</span>
     </div>
   );

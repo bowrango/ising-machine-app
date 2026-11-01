@@ -5,14 +5,18 @@ oscillators are powered.
 """
 
 import glob
+import json
 import os
 import select
 import sys
 import termios
 import time
+import urllib.error
+import urllib.request
 from itertools import product
 
 
+PUBLISH_URL = "https://isingmachine.app/api/result"  # dev: http://localhost:5173/api/result
 R_W, R_AB = 75.0, 10000.0  # MCP4351-103 wiper and full-scale resistance (drivers/mcp4351.h)
 CODE_MAX = 256
 
@@ -120,7 +124,7 @@ class ESP32:
         """corr[i][j]: correlation of spins i and j's comparator bits as +-1 (2 * agreement - 1): +1 in
         phase, -1 antiphase, ~0 unlocked."""
         rows = self._call(f"sample {shots}", lines=8)
-        return {r[0]: {s: 2 * float(p) / 100 - 1 for s, p in zip("ABCDEFGH", r.split()[1:])} for r in rows}
+        return {r[0]: {s: round(2 * float(p) / 100 - 1, 3) for s, p in zip("ABCDEFGH", r.split()[1:])} for r in rows}
 
     # Max-cut
 
@@ -135,6 +139,23 @@ class ESP32:
         best, best_state = max_cut(problem, spins)
         return {"codes": codes, "state": state, "cut": cut_value(problem, state), "max": best,
                 "best_state": best_state, "corr": corr}
+
+    def publish(self, name: str, problem: dict[str, float], result: dict, url: str = PUBLISH_URL,
+                token: str | None = None):
+        """POST a solve result to the site (Result in web/protocol/messages.ts). name is the graph preset;
+        token defaults to the DEVICE_TOKEN env var."""
+        token = token or os.environ.get("DEVICE_TOKEN")
+        assert token, "set DEVICE_TOKEN to publish"
+        msg = {"type": "result", "name": name, "problem": problem,
+               "corr": {c: result["corr"][c] for c in result["state"]},
+               "found": {"state": result["state"], "cut": result["cut"]},
+               "max": {"state": result["best_state"], "cut": result["max"]}}
+        req = urllib.request.Request(url, data=json.dumps(msg).encode(), method="POST", headers={
+            "Authorization": f"Bearer {token}", "Content-Type": "application/json", "User-Agent": "isingmachine"})
+        try:
+            urllib.request.urlopen(req, timeout=10).close()
+        except urllib.error.HTTPError as e:
+            raise RuntimeError(f"{url}: {e.code} {e.reason}") from None
 
     def close(self):
         os.close(self.fd)

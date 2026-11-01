@@ -1,16 +1,16 @@
-import { CouplingMatrix } from "./components/CouplingMatrix";
+import { ResultView } from "./components/ResultView";
 import { StatusBar } from "./components/StatusBar";
-import { useDeviceState } from "./hooks/useDeviceState";
+import { useResult } from "./hooks/useResult";
 
 export default function App() {
-  const { presence, hello, config, state, stats } = useDeviceState();
+  const { connected, result } = useResult();
 
   return (
     <main>
       <h1>Ising Machine</h1>
-      <StatusBar presence={presence} hello={hello} stats={stats} seq={state?.seq} />
-      <CouplingMatrix config={config} state={state} />
-      {config?.preset && <p className="muted">Preset: {config.preset}</p>}
+      <StatusBar connected={connected} result={result} />
+      {result && <h2>{result.name}</h2>}
+      <ResultView result={result} />
     </main>
   );
 }

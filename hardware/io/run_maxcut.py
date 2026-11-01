@@ -3,6 +3,7 @@
     python run_maxcut.py ring4b ring8b bipart8b
     python run_maxcut.py bipart8w rand8b rand8w --seed 3
     python run_maxcut.py ring4b --scope --write
+    python run_maxcut.py bipart8w --publish       # uses DEVICE_TOKEN from the environment
 """
 
 import argparse
@@ -68,6 +69,7 @@ def main():
     p.add_argument("--shots", type=int, default=10000)
     p.add_argument("--scope", action="store_true")
     p.add_argument("--write", action="store_true")
+    p.add_argument("--publish", action="store_true", help="send each result to isingmachine.app")
     args = p.parse_args()
 
     seed = args.seed if args.seed is not None else random.randrange(10000)
@@ -80,6 +82,8 @@ def main():
             problem = graph(random.Random(seed)) if callable(graph) else graph
             order = "".join(sorted(set("".join(problem))))
             r = esp.solve(problem, args.shots)
+            if args.publish:
+                esp.publish(name, problem, r)
             state = "".join(r["state"][c] for c in order)
             best = "".join(r["best_state"][c] for c in order)
             label = f"{name} seed {seed}" if callable(graph) else name

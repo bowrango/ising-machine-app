@@ -1,12 +1,12 @@
 # ising-machine-app
 
-An 8-spin oscillator Ising machine streamed live to [isingmachine.app](https://isingmachine.app). Firmware and boards: [`firmware/README.md`](firmware/README.md).
+An 8-spin oscillator Ising machine whose max-cut results are published to [isingmachine.app](https://isingmachine.app). Firmware and boards: [`firmware/README.md`](firmware/README.md).
 
 ```
-ESP32 ──wss /api/device──▶ Worker ──▶ DeviceSession (Durable Object) ──wss /api/ws──▶ browsers
+ESP32 ──serial──▶ Mac (hardware/io) ──POST /api/result──▶ Worker ──▶ DeviceSession (Durable Object) ──wss /api/ws──▶ browsers
 ```
 
-The ESP32 connects out to a Cloudflare Worker over a WebSocket. A single Durable Object relays its messages to every browser. The site is public and read-only.
+The bench scripts solve a problem on the ESP32 over serial and POST the result to a Cloudflare Worker. A single Durable Object keeps the latest result and relays new ones to every browser. The site is public and read-only.
 
 ## Setup
 
@@ -20,38 +20,26 @@ npm run deploy    # builds and deploys to Cloudflare
 | | Dev | Prod |
 |---|---|---|
 | Browser | `http://localhost:5173` | `https://isingmachine.app` |
-| Device endpoint | `ws://<mac-lan-ip>:5173/api/device` | `wss://isingmachine.app/api/device` |
-| ESP32 build | `ENV_LOCAL 1` in `secrets.h` | `ENV_LOCAL 0` in `secrets.h` |
+| Publish endpoint | `http://localhost:5173/api/result` | `https://isingmachine.app/api/result` |
 | `DEVICE_TOKEN` | `web/.dev.vars` | `wrangler secret put DEVICE_TOKEN` |
 
-Switching environments means reflashing the ESP32. In dev, the Mac and ESP32 must be on the same network.
+## Publishing results
 
-## Device protocol
-
-The device connects to `/api/device` with `Authorization: Bearer <DEVICE_TOKEN>` and sends JSON messages. The types are defined in [`web/protocol/messages.ts`](web/protocol/messages.ts).
-
-| Direction | `type` | When |
-|---|---|---|
-| device → server | `hello` | first, on every connect |
-| device → server | `config` | on connect and when the couplings change |
-| device → server | `state` | 10 Hz while someone is viewing, 1 Hz otherwise |
-| server → device | `viewers` | when the browser count changes |
-
-The device must send something at least every 5 s, or it is marked offline. A new connection replaces the old one, so the device can just reconnect after a drop.
+`python3 hardware/io/run_maxcut.py <graph> --publish` POSTs each result to `/api/result` with `Authorization: Bearer $DEVICE_TOKEN`. The body is a `Result` from [`web/protocol/messages.ts`](web/protocol/messages.ts); browsers get it over `/api/ws` stamped with `receivedMs`.
 
 ## Routes
 
 | Route | Use |
 |---|---|
-| `/api/device` | ESP32 WebSocket |
+| `/api/result` | POST a result (bearer token) |
 | `/api/ws` | browser WebSocket |
-| `/api/state` | JSON snapshot of the latest state |
+| `/api/state` | JSON snapshot of the latest result |
 | `/api/health` | health check |
 
 ## Layout
 
 ```
 web/         Cloudflare site: React app (src/), Worker + Durable Object (worker/), message types (protocol/)
-firmware/    ESP32 sketch
+firmware/    ESP32 sketch (serial CLI)
 hardware/    schematics and bench scripts
 ```
