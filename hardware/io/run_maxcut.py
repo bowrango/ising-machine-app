@@ -1,8 +1,9 @@
 """Solve max-cut problems on the device and report the cut vs the max cut.
 
-    python run_maxcut.py ring4b ring8b cal_ring8b cube8b cal_cube8b bipart8b cal_bipart8b full8b
-    python run_maxcut.py ring8w cal_ring8w bipart8w full8w --seed 3
-    python run_maxcut.py ring4b --scope --write
+    python run_maxcut.py ring4b ring8b cal_ring8b cube8b cal_cube8b bipart8b cal_bipart8b dense8b
+    python run_maxcut.py ring8w cal_ring8w bipart8w dense8w --seed 3
+    python run_maxcut.py cubic8b cubic8w --seed 3
+    python run_maxcut.py ring4b --phase --write
     python run_maxcut.py bipart8w --publish       # uses DEVICE_TOKEN from the environment
 """
 
@@ -13,7 +14,7 @@ from datetime import datetime
 from itertools import combinations
 from pathlib import Path
 
-from device import IsingMachine
+from device import IsingMachine, cut_value
 
 OUT_DIR = Path(__file__).parent / "maxcut"
 SPINS = "ABCDEFGH"
@@ -37,13 +38,39 @@ def weighted(edges: list[str]):
     return lambda rng: {e: rng.randint(1, W_MAX) for e in edges}
 
 
-def full8w(rng: random.Random) -> dict[str, int]:
+def cubic8(rng: random.Random) -> list[str]:
+    """Random connected, non-bipartite 3-regular graph on A..H: pair up three stubs per spin uniformly
+    (configuration model) and redraw until simple. Non-bipartite so the max cut leaves an edge uncut."""
+    while True:
+        stubs = [s for s in SPINS for _ in range(3)]
+        rng.shuffle(stubs)
+        edges = sorted({"".join(sorted(stubs[k:k + 2])) for k in range(0, len(stubs), 2)})
+        if len(edges) < len(stubs) // 2 or any(a == b for a, b in edges):
+            continue  # self-loop or repeated edge
+        side = {"A": 0}  # 2-colour from A: fails on an odd cycle; unreached spins mean disconnected
+        stack, odd = ["A"], False
+        while stack:
+            u = stack.pop()
+            for e in edges:
+                if u in e:
+                    v = e.replace(u, "", 1)
+                    if v not in side:
+                        side[v] = 1 - side[u]
+                        stack.append(v)
+                    elif side[v] == side[u]:
+                        odd = True
+        if odd and len(side) == len(SPINS):
+            return edges
+
+
+def dense8w(rng: random.Random) -> dict[str, int]:
     """Complete graph K8 with a uniform random weight per edge."""
     return {a + b: rng.randint(0, W_MAX) for a, b in combinations(SPINS, 2)}
 
 
 # Problems: weight per edge. b = binary (unit weights), w = weighted; the random ones take an RNG.
 GRAPHS = {
+    "empty": dict.fromkeys((a + b for a, b in combinations(SPINS, 2)), 0),
     "ring4b": {"AB": 1, "BC": 1, "CD": 1, "DA": 1},
     "ring8b": dict.fromkeys(RING8, 1),
     "ring8w": weighted(RING8),
@@ -57,18 +84,26 @@ GRAPHS = {
     "bipart8w": weighted(BIPART8),
     "cal_bipart8b": dict.fromkeys(CAL_BIPART8, 1),
     "cal_bipart8w": weighted(CAL_BIPART8),
-    "full8b": dict.fromkeys((a + b for a, b in combinations(SPINS, 2)), 1),  # K8
-    "full8w": full8w,
+    "cubic8b": lambda rng: dict.fromkeys(cubic8(rng), 1),
+    "cubic8w": lambda rng: weighted(cubic8(rng))(rng),  # same edges as cubic8b for a given seed
+    "dense8b": dict.fromkeys((a + b for a, b in combinations(SPINS, 2)), 1),  # K8
+    "dense8w": dense8w,
 }
 
 
-def scope_vs_a(r: dict) -> str:
+def p_optimal(problem: dict[str, int], r: dict) -> float:
+    """Fraction of shots whose sampled state (bits A..H) reaches the max cut."""
+    hits = sum(n for st, n in r["counts"].items() if cut_value(problem, dict(zip(SPINS, st))) == r["max"])
+    return hits / sum(r["counts"].values())
+
+
+def phase_vs_a(r: dict) -> str:
     """Scope phase of B..D vs A (CH1..CH4), next to the phase the readout implies."""
     import phase
     import scope
 
     res = phase.measure(scope.HOST, [1, 2, 3, 4])
-    line = "  scope vs A:"
+    line = f"\n{'':12} scope vs A:"
     for ch, spin in enumerate(SCOPE_SPINS[1:], start=2):
         f, _, dphi = res[ch]
         r[f"df_{spin}"], r[f"phase_{spin}"] = f - res[1][0], dphi
@@ -83,7 +118,7 @@ def main():
     p.add_argument("graphs", nargs="+", choices=GRAPHS)
     p.add_argument("--seed", type=int, help="seed for the random graphs (default: random)")
     p.add_argument("--shots", type=int, default=10000)
-    p.add_argument("--scope", action="store_true")
+    p.add_argument("--phase", action="store_true", help="measure B..D phase vs A on scope CH1..CH4")
     p.add_argument("--write", action="store_true")
     p.add_argument("--publish", action="store_true", help="send each result to isingmachine.app")
     args = p.parse_args()
@@ -102,12 +137,11 @@ def main():
                 machine.publish(name, problem, r)
             state = "".join(r["state"][c] for c in order)
             best = "".join(r["best_state"][c] for c in order)
-            label = f"{name} seed {seed}" if callable(graph) else name
-            line = (f"{label:12} {order} {state}  found {r['cut']} (max {r['max']}, {best})\n"
-                    f"{'':12} ratio {r['cut'] / r['max']:.2f}  corr "
+            line = (f"{name:12} {order} {state}  found {r['cut']} (max {r['max']}, {best}){f'  seed {seed}' if callable(graph) else ''}\n"
+                    f"{'':12} ratio {r['cut'] / r['max'] if r['max'] else 1:.2f}  P(max) {p_optimal(problem, r):.3f}  corr "
                     + " ".join(f"{r['corr'][c]:+.2f}" for c in order))
-            if args.scope:
-                line += scope_vs_a(r)
+            if args.phase:
+                line += phase_vs_a(r)
             print(line)
             rows.append({**r, "graph": name, "seed": seed if callable(graph) else "", "order": order,
                          "state": state, "best_state": best, "problem": problem})
