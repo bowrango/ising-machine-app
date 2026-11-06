@@ -1,0 +1,45 @@
+% Two oscillators i and j, each two SN74HC240 inverters cross-coupled through R = 1k onto an L || C tank
+% (L = 30 uH, C = 750 pF; as in sim/oscillator.cir), with terminals L and R. Coupler R_ij joins i's R to j's L.
+% Each oscillator's TLV3502 compares R (+IN) against L (-IN) and gives its phase bit WIN (WIN_DETECT_X4.SchDoc).
+% Build: lualatex oscillator-connection.tex && pdftoppm -png -r 300 -singlefile oscillator-connection.pdf oscillator-connection
+\documentclass[border=8pt]{standalone}
+\usepackage[american]{circuitikz}
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Heros}
+\usepackage{sansmath}
+\sansmath
+
+\begin{document}
+\ctikzset{bipoles/thickness=1, tripoles/thickness=1}
+\begin{circuitikz}[font=\large, line width=0.9pt, x=1.5cm, y=1.4cm]
+  % One oscillator: terminal L at x=0, R at x=4; comparator below
+  \newcommand{\osc}[2]{%
+    \begin{scope}[shift={(#1,0)}]
+      \node at (2,0.75) {$#2$};
+      \node[above left] at (0,0) {L};
+      \node[above right] at (4,0) {R};
+      \draw (0,0) -- (0,-3.4) (4,0) -- (4,-3.4);
+      \node[not port, fill=white] (U1) at (1.0,0) {};
+      \draw (0,0) -- (U1.in);
+      \draw (U1.out) to[R, l=$R$] (4,0);
+      \node[not port, xscale=-1, fill=white] (U2) at (3.0,-1.2) {};
+      \draw (0,-1.2) to[R, l=$R$] (U2.out);
+      \draw (U2.in) -- (4,-1.2);
+      \draw (0,-2.3) to[L, l=$L$] (4,-2.3);
+      \draw (0,-3.4) to[C, l=$C$] (4,-3.4);
+      \foreach \y in {-1.2,-2.3,-3.4} { \fill (0,\y) circle (2pt); \fill (4,\y) circle (2pt); }
+      % Comparator: + from R, - from L
+      \node[op amp, noinv input up, rotate=-90] (W) at (2,-5.0) {};
+      \draw (4,-3.4) -- (4,-4.0) -| (W.+);
+      \draw (0,-3.4) -- (0,-4.0) -| (W.-);
+      \draw (W.out) -- ++(0,-0.3) node[below] {WIN$_{#2}$};
+    \end{scope}}
+
+  \osc{0}{i}
+  \osc{6}{j}
+
+  % Coupler: i.R -- R_ij -- j.L
+  \draw[european resistors] (4,-4.0) to[vR, l=$R_{ij}$, *-*] (6,-4.0);
+
+\end{circuitikz}
+\end{document}
