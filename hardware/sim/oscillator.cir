@@ -1,28 +1,45 @@
 * Oscillator start-up: cross-coupled SN74HC240 LC oscillator (generated with oscillator.asc).
-X1 l y1 hcinv
-R1 r y1 R=if(time<Ton,1G,Rout+Rs)
-X2 r y2 hcinv
-R2 y2 l R=if(time<Ton,1G,Rout+Rs)
+X1 l y1 vcc g hcinv
+R1 r y1 R=if(time<Ton,1G,Rs)
+X2 r y2 vcc g hcinv
+R2 y2 l R=if(time<Ton,1G,Rs)
 L1 rl l {Lt}
 Resr r rl {2*pi*1.05e6*Lt/Q}
 C1 r l {Ct}
-Cl l 0 {Cnode}
-Rl l 0 10Meg
+Rloss l r {Rloss}
+Chcl l 0 {Chc}
+Cwinl l 0 {Cwin}
+Cpotl l 0 {4*Cpot}
+Cprobe l 0 {Cprobe}
+Rprobe l 0 10Meg
 Dlh l vcc DCLAMP
-Dll 0 l DCLAMP
-Cr r 0 {Cnode+1p}
-Rr r 0 10Meg
+Dll g l DCLAMP
+Chcr r 0 {Chc}
+Cwinr r 0 {Cwin}
+Cpotr r 0 {3*Cpot}
 Drh r vcc DCLAMP
-Drl 0 r DCLAMP
-Vcc vcc 0 {Vcc}
-* X1/X2: HC240 inverters (hcinv: tanh transfer, gain at Vcc/2). R1/R2: Rout + 1k, open until SW1 enables the outputs at Ton.
-* Cr: 1 pF imbalance so the symmetric circuit can start in simulation.
-.subckt hcinv in out
-B1 out 0 V=Vcc/2*(1-tanh(2*gain*(V(in)-Vcc/2)/Vcc))
-.ends hcinv
-.param Lt=30.6u Q=40 Ct=750p Rs=1k Rout=60 Vcc=3.3 gain=30 Cnode=10p Ton=5u
-.model DCLAMP D(Is=1e-14 N=1 Rs=10)
-.tran 0 60u 0 2n
+Drl g r DCLAMP
+Vreg v3 0 {Vcc}
+Ccoupler v3 0 {3u/Nshare}
+Rsup v3 vs {Rsup*Nshare}
+Lsup vs vcc {Lsup*Nshare}
+Cosc vcc 0 {600n/Nshare}
+R12 g 0 {49.9*Nshare}
+L12 g 0 {47u*Nshare}
+Csync g 0 {Csync}
+C12 g j8 {8.2n/Nshare}
+Rj8 j8 0 {Rj8}
+* X1/X2: HC240 inverters (hcinv: push-pull, Rout each way, tanh threshold midway between vcc and its gnd, input lag td; in osc.lib). R1/R2: 1k, open until SW1 enables the outputs at Ton.
+* Rloss: lumped tank loss beyond the inductor ESR (couplers, probe, comparator), fitted to A_L with only its probe connected (0.31-2.98 V, 2026-11-03).
+* Node loads: Chc = HC240 Ci (3p typ), Cwin = TLV3502 (2p), Cpot = one MCP4351 terminal (estimate), Cprobe/Rprobe = 10x probe on l. The probe is the start-up asymmetry.
+* g: HC240 GND pin = SYNC net: R12 || L12 (L1 on the coupler board) to the plane, C12 to J8 (Rj8 = 1G open, 50 for a generator). Csync is the net's pin/trace capacitance (not drawn).
+* Ct = 723p fits A (free-running 1.044 MHz, A_L probe only, with td = 40n, inside the 750p part's 5%). td: ~40 ns from the switching kinks on A_L (2.0 V rising, 1.3 V falling).
+* Supply: Vreg = Feather 3V3, Ccoupler = C13 + C14 + ten 100n, Rsup + Lsup = traces and J1 (estimates), Cosc = six 100n on the oscillator board.
+* Nshare: oscillators sharing the ground and supply parts in phase (series parts x Nshare, capacitors / Nshare).
+.include osc.lib
+.param Lt=29.95u Q=40 Ct=723p Rs=1k Rout=60 Vcc=3.3 gain=30 td=40n Ton=5u Nshare=1 Rloss=9k
+.param Chc=3p Cwin=2p Cpot=10p Cprobe=12p Csync=100p Rj8=1G Rsup=0.1 Lsup=100n
+.tran 0 300u 0 2n
 .meas tran t1 when V(l,r)=0 rise=40
 .meas tran t2 when V(l,r)=0 rise=50
 .meas tran freq param 10/(t2-t1)
@@ -31,6 +48,8 @@ B1 out 0 V=Vcc/2*(1-tanh(2*gain*(V(in)-Vcc/2)/Vcc))
 .meas tran vpp param vmax-vmin
 .meas tran tstart when V(l,r)=1 rise=1
 .meas tran startup param tstart-Ton
-.meas tran tfull when V(l,r)=3.06 rise=1
+.meas tran tfull when V(l,r)=2.1 rise=1
 .meas tran full param tfull-Ton
+.meas tran gpp pp V(g) from 40u to 60u
+.meas tran vccmin min V(vcc) from 5u to 60u
 .end

@@ -1,0 +1,42 @@
+* Shared models for oscillator.asc/.cir and device4.asc/.cir. Uses the global .params of the including netlist
+* (gain, td, Rout, Rs, Ton, Lt, Q, Rloss, Chc, Cwin, Cpot, Cprobe).
+
+* SN74HC240 inverter: push-pull, Rout each way, tanh threshold midway between vcc and its gnd pin.
+* td: propagation delay as a single-pole lag on the input (Ein/Rin/Cin). A pure delay() line keeps full gain at
+* high frequency and lets l and r ring together at ~6 MHz instead of oscillating on the tank.
+.func hi(vin,vh,vl) {0.5*(1-tanh(2*gain*(vin-(vh+vl)/2)/(vh-vl)))}
+.subckt hcinv in out vcc gnd
+Ein inb 0 in 0 1
+Rin inb ind 1k
+Cin ind 0 {td/1k}
+Bup vcc out I=hi(V(ind),V(vcc),V(gnd))/Rout*(V(vcc)-V(out))
+Bdn out gnd I=(1-hi(V(ind),V(vcc),V(gnd)))/Rout*(V(out)-V(gnd))
+.ends hcinv
+
+* HC240 input clamp diodes
+.model DCLAMP D(Is=1e-14 N=1 Rs=10)
+
+* One oscillator (the circuit in oscillator.asc without the shared SYNC net and supply): terminals l (_L) and r (_R).
+* Ct sets its frequency. Npl/Npr: digipot terminals on each side. probe=1 puts a 10x probe on l.
+.subckt osc l r vcc g params: Ct=750p Npl=4 Npr=3 probe=1
+X1 l y1 vcc g hcinv
+R1 r y1 R=if(time<Ton,1G,Rs)
+X2 r y2 vcc g hcinv
+R2 y2 l R=if(time<Ton,1G,Rs)
+L1 rl l {Lt}
+Resr r rl {2*pi*1.05e6*Lt/Q}
+C1 r l {Ct}
+Rloss l r {Rloss}
+Chcl l 0 {Chc}
+Cwinl l 0 {Cwin}
+Cpotl l 0 {Npl*Cpot}
+Cprobe l 0 {probe*Cprobe+1f}
+Rprobe l 0 {if(probe,10Meg,1T)}
+Dlh l vcc DCLAMP
+Dll g l DCLAMP
+Chcr r 0 {Chc}
+Cwinr r 0 {Cwin}
+Cpotr r 0 {Npr*Cpot}
+Drh r vcc DCLAMP
+Drl g r DCLAMP
+.ends osc

@@ -1,0 +1,37 @@
+* Four coupled oscillators A-D (generated with device4.asc): shared SYNC net and supply, digipot couplers between opposite terminals.
+XA a_l a_r vcc g osc Ct={CtA}
+XB b_l b_r vcc g osc Ct={CtB}
+XC c_l c_r vcc g osc Ct={CtC}
+XD d_l d_r vcc g osc Ct={CtD}
+RAB a_l b_r {Rc(codeAB)}
+RAC a_r c_l {Rc(codeAC)}
+RAD a_l d_r {Rc(codeAD)}
+RBC b_l c_r {Rc(codeBC)}
+RBD b_r d_l {Rc(codeBD)}
+RCD c_l d_r {Rc(codeCD)}
+Vreg v3 0 {Vcc}
+Ccoupler v3 0 3u
+Rsup v3 vs {Rsup}
+Lsup vs vcc {Lsup}
+Cosc vcc 0 600n
+R12 g 0 49.9
+L12 g 0 47u
+Csync g 0 {Csync}
+C12 g j8 8.2n
+Rj8 j8 0 {Rj8}
+* XA-XD: subcircuit osc (osc.lib), one oscillator each with a 10x probe on _L. Ct fits each one's free-running frequency on the bench
+* (A 1.0521, B 1.0333, C 1.0082, D 1.0081 MHz; 10x probes, no couplers).
+* Couplers: MCP4351 W-B rheostats, Rc(code) = Rwiper + code/256 Rpot; code < 0 is disconnected. Wiring (coupling-network.tex): j - i odd
+* joins i_L to j_R, even joins i_R to j_L, so every coupler is antiferromagnetic. Default: ring4b (AB, BC, CD, DA at code 0).
+* Plot the phases with: python ../io/ltspice.py device4.raw --phase a b c d
+* g and supply: shared by all four, as in oscillator.asc (the board's other four oscillators E-H are not modelled).
+.include osc.lib
+.func Rc(code) {if(code<0,1T,Rwiper+code/256*Rpot)}
+.param codeAB=0 codeBC=0 codeCD=0 codeAD=0 codeAC=-1 codeBD=-1 Rwiper=75 Rpot=10k
+.param CtA=705p CtB=732p CtC=773p CtD=774p
+.param Lt=29.95u Q=40 Rs=1k Rout=60 Vcc=3.3 gain=30 td=40n Ton=5u Rloss=4k
+.param Chc=3p Cwin=2p Cpot=10p Cprobe=12p Csync=100p Rj8=1G Rsup=0.1 Lsup=100n
+.tran 0 300u 0 2n
+.save V(a_l) V(a_r) V(b_l) V(b_r) V(c_l) V(c_r) V(d_l) V(d_r) V(g) V(vcc)
+.meas tran gpp pp V(g) from 250u to 300u
+.end
