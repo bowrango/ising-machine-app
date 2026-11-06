@@ -20,8 +20,9 @@ firmware/**/secrets.h
 firmware/isingmachine/src/tests/TODO.md
 hardware/TODO.md
 
-# Python bytecode (hardware/io scripts)
+# Python bytecode and virtualenv (hardware/io scripts)
 __pycache__/
+.venv/
 
 # Scope / lock-sweep captures, and power_spectrum.py / run_maxcut.py output
 hardware/io/*.csv

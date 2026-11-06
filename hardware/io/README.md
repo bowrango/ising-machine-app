@@ -2,7 +2,16 @@
 
 Python scripts that drive the bench instruments over raw SCPI sockets (port 5025), and the ESP32
 through its serial CLI (`device.py`). `run_maxcut.py` solves max-cut problems through it; `phase.py`
-measures frequency and relative phase on the scope.
+measures frequency and relative phase on the scope; `ltspice.py` reads LTspice `.raw` waveforms, which
+`transient.py --sim` overlays on a start-up capture.
+
+## Setup
+
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 ## Network
 

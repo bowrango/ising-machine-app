@@ -1,0 +1,5 @@
+# hardware/io scripts (Python 3.9+). phase.py, scope.py, device.py, awg.py and ltspice.py's reader use only the
+# standard library; plotting and power_spectrum.py / lock_sweep.py need these.
+matplotlib>=3.7
+numpy>=1.24
+scipy>=1.10
