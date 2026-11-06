@@ -79,6 +79,7 @@ def main():
     args = p.parse_args()
 
     time, waves, srate = read(args.host, args.channels)
+    time = [t - time[0] for t in time]  # start at 0 (read() is trigger-relative, which transient.py needs)
     n = len(time)
 
     print(f"{n} samples at {srate:.3g} Sa/s")
