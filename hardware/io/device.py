@@ -61,10 +61,7 @@ class IsingMachine:
         last = time.time()
         while time.time() - last < timeout:
             if select.select([self.fd], [], [], 0.005)[0]:
-                try:
-                    buf += os.read(self.fd, 4096)
-                except BlockingIOError:  # select can report a byte another reader then took
-                    continue
+                buf += os.read(self.fd, 4096)
                 last = time.time()
                 if until and until.encode() in buf:
                     break
