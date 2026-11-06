@@ -3,6 +3,9 @@
     python power_spectrum.py 1 2                          # live: plot
     python power_spectrum.py 1 --write                    # also write spectrum/spectrum_<datetime>.csv
     python power_spectrum.py --read scope_<datetime>.csv  # from a saved scope.py capture
+    python power_spectrum.py --read spectrum/spectrum_<datetime>.csv  # re-plot a spectrum saved with --write
+    
+    python power_spectrum.py 3 --color C2                 # matplotlib colours, one per channel in order
 
 Levels are RMS volts per bin (Hann window, corrected for tone amplitude), in dBV = 20 log10(Vrms).
 Resolution is sample_rate / samples; capture more cycles (slower timebase) for finer bins.
@@ -67,6 +70,7 @@ def main():
     p.add_argument("--read")
     p.add_argument("--host", default=scope.HOST)
     p.add_argument("--write", action="store_true")
+    p.add_argument("--color", nargs="+", help="line colours in channel order, e.g. C2 for the scope plot's C3 green")
     args = p.parse_args()
 
     if args.read:
@@ -90,8 +94,9 @@ def main():
             for i in range(len(freq)):
                 w.writerow([f"{freq[i]:.6e}"] + [f"{20 * np.log10(v[i] + 1e-12):.2f}" for _, v in specs.values()])
 
-    for name, (_, vrms) in specs.items():
-        line, = plt.semilogx(freq[1:], 20 * np.log10(vrms[1:] + 1e-12), label=name)
+    colors = (args.color or []) + [None] * len(specs)  # unlisted channels keep the default cycle
+    for (name, (_, vrms)), color in zip(specs.items(), colors):
+        line, = plt.semilogx(freq[1:], 20 * np.log10(vrms[1:] + 1e-12), label=name, color=color)
         hs = harmonics(freq, vrms)
         for h, f, v in hs:
             level = 20 * np.log10(v)

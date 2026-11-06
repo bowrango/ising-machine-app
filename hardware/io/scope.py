@@ -3,6 +3,7 @@
     python scope.py 1              # CH1: print Vpp / mean / RMS
     python scope.py 1 2 --write    # CH1 + CH2, also save time,C1,C2 to scope_<datetime>.csv
     python scope.py 1 --plot       # CH1, also plot the capture in a window
+    python scope.py 3 --color C2   # matplotlib colours, one per channel in order (implies --plot)
 
 The scope is wired directly to the Mac: scope LAN static 192.168.10.2/24, Mac USB-C adapter 192.168.10.1/24.
 Reads what's on screen; press Stop on the scope first for a frozen capture.
@@ -74,6 +75,7 @@ def main():
     p.add_argument("--host", default=HOST)
     p.add_argument("--write", action="store_true")
     p.add_argument("--plot", action="store_true")
+    p.add_argument("--color", nargs="+", help="line colours in channel order, e.g. C2 for the default third-trace green")
     args = p.parse_args()
 
     time, waves, srate = read(args.host, args.channels)
@@ -94,15 +96,16 @@ def main():
                 w.writerow([f"{time[i]:.6e}"] + [f"{waves[ch][i]:.5g}" for ch in waves])
         print(f"wrote {path}")
 
-    if args.plot:
+    if args.plot or args.color:
         import matplotlib.pyplot as plt
 
-        for ch, w in waves.items():
-            plt.plot([t * 1e6 for t in time], w, lw=0.8, label=f"C{ch}")
+        colors = (args.color or []) + [None] * len(waves)  # unlisted channels keep the default cycle
+        for (ch, w), color in zip(waves.items(), colors):
+            plt.plot([t * 1e6 for t in time], w, lw=0.8, label=f"C{ch}", color=color)
         plt.xlabel("time (us)")
         plt.ylabel("V")
-        plt.title(f"{n} samples at {srate:.3g} Sa/s")
-        plt.legend()
+        # plt.title(f"{n} samples at {srate:.3g} Sa/s")
+        # plt.legend()
         plt.grid(alpha=0.3)
         plt.show()
 
