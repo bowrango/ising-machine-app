@@ -100,12 +100,16 @@ void printGraph(const couplers::WeightedGraph graph) {
   Serial.println(first ? "none" : "");
 }
 
-void printSample(const uint32_t agree[board::NUM_SPINS][board::NUM_SPINS], uint32_t shots) {
-  for (uint8_t i = 0; i < board::NUM_SPINS; i++) {
-    Serial.print(board::SPIN_LABEL[i]);
-    for (uint8_t j = 0; j < board::NUM_SPINS; j++) Serial.printf(" %.1f", 100.0 * agree[i][j] / shots);
-    Serial.println();
+void printSample(const uint32_t counts[board::NUM_STATES]) {
+  bool first = true;
+  for (uint16_t s = 0; s < board::NUM_STATES; s++) {
+    if (!counts[s]) continue;
+    if (!first) Serial.print(',');
+    for (uint8_t i = 0; i < board::NUM_SPINS; i++) Serial.print(s >> i & 1 ? '1' : '0');
+    Serial.printf(":%lu", (unsigned long)counts[s]);
+    first = false;
   }
+  Serial.println();
 }
 
 }  // namespace utilities

@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "machine/couplers.h"
+#include "board.h"
 
 namespace utilities {
 
@@ -34,8 +35,8 @@ bool createWeightedGraph(const char *text, couplers::WeightedGraph graph);
 // Prints graph's edges with their codes, e.g. "AB:0,BC:128", or "none".
 void printGraph(const couplers::WeightedGraph graph);
 
-// Prints one row per spin from oscillators::sample: its label, then the % of shots each spin A..H
-// matched it.
-void printSample(const uint32_t agree[board::NUM_SPINS][board::NUM_SPINS], uint32_t shots);
+// Prints the states seen by oscillators::sample with their counts, e.g. "01010101:9876,10101010:124",
+// each state as spins A..H's comparator bits.
+void printSample(const uint32_t counts[board::NUM_STATES]);
 
 }  // namespace utilities

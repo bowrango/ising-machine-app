@@ -19,9 +19,7 @@ from itertools import product
 PUBLISH_URL = "https://isingmachine.app/api/result"  # dev: http://localhost:5173/api/result
 R_W, R_AB = 75.0, 10000.0  # MCP4351-103 wiper and full-scale resistance (drivers/mcp4351.h)
 CODE_MAX = 256
-
-# Problem: weight per edge, e.g. {"AB": 1, "BC": 3}. State: phase per spin, e.g. {"A": "+", "B": "-"}.
-
+SPINS = "ABCDEFGH"  # bit order of sampled states
 
 def to_codes(problem: dict[str, float]) -> dict[str, int]:
     """Codes with conductance proportional to weight; the largest weight is code 0, zero weights are
@@ -121,25 +119,37 @@ class IsingMachine:
 
     # Oscillators
 
-    def sample(self, shots: int = 10000) -> dict[str, dict[str, float]]:
-        """corr[i][j]: correlation of spins i and j's comparator bits as +-1 (2 * agreement - 1): +1 in
-        phase, -1 antiphase, ~0 unlocked."""
-        rows = self._call(f"sample {shots}", lines=8)
-        return {r[0]: {s: round(2 * float(p) / 100 - 1, 3) for s, p in zip("ABCDEFGH", r.split()[1:])} for r in rows}
+    def sample(self, shots: int = 10000) -> dict[str, int]:
+        """Returns {state: count} dictionary"""
+        (line,) = self._call(f"sample {shots}", lines=1)
+        return {st: int(n) for st, n in (p.split(":") for p in line.split(","))}
+
+    def correlation(self, shots: int = 10000, counts: dict[str, int] | None = None) -> dict[str, dict[str, float]]:
+        """Returns {osc: corr} dictionary, from counts if given (else samples shots)"""
+        counts = counts or self.sample(shots)
+        shots = sum(counts.values())
+        corr = {a: dict.fromkeys(SPINS, 0.0) for a in SPINS}
+        for state, n in counts.items():
+            for i, a in enumerate(SPINS):
+                for j, b in enumerate(SPINS):
+                    corr[a][b] += n if state[i] == state[j] else -n
+        return {a: {b: round(c / shots, 3) for b, c in row.items()} for a, row in corr.items()}
 
     # Max-cut
 
     def solve(self, problem: dict[str, float], shots: int = 10000) -> dict:
-        """Program problem, sample, and score the majority phases (vs the first spin) against the max cut."""
-        codes = to_codes(problem)
-        spins = "".join(sorted(set("".join(codes))))
+        """Returns Result dictionary"""
         self.disconnect() # reset
-        self.write_weighted_graph(codes)
-        corr = self.sample(shots)[spins[0]]  # fix first spin as the reference
+        codes = to_codes(problem)
+        spins = "".join(sorted(set("".join(problem))))
+        if codes:
+            self.write_weighted_graph(codes)
+        counts = self.sample(shots)
+        corr = self.correlation(counts=counts)[spins[0]]  # fix first spin as the reference
         state = {c: "+" if corr[c] >= 0 else "-" for c in spins}
         best, best_state = max_cut(problem, spins)
         return {"codes": codes, "state": state, "cut": cut_value(problem, state), "max": best,
-                "best_state": best_state, "corr": corr}
+                "best_state": best_state, "corr": corr, "counts": counts}
 
     def publish(self, name: str, problem: dict[str, float], result: dict, url: str = PUBLISH_URL):
         """POST a solve result to the site (Result in web/protocol/messages.ts), authorised by the

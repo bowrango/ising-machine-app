@@ -35,6 +35,7 @@ constexpr uint8_t CHANNELS_PER_DIGIPOT = 4;
 // Spins (oscillators) A..H = 0..7, and the 28 couplers joining every pair.
 constexpr uint8_t NUM_SPINS    = 8;
 constexpr uint8_t NUM_COUPLERS = 28;
+constexpr uint16_t NUM_STATES = 256;
 constexpr char SPIN_LABEL[NUM_SPINS + 1] = "ABCDEFGH";
 
 // Coupler wiring: digipot channel -> spin pair. Derived from the netlist (firmware/README.md §1.4);

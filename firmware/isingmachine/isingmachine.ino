@@ -29,7 +29,7 @@ static void printHelp() {
   Serial.println("  writeBinaryGraph <graph> edges at code 0, e.g. AB,BC,CA; the rest disconnected");
   Serial.println("  writeWeightedGraph <graph> edges with codes, e.g. AB:0,BC:128; the rest disconnected");
   Serial.println("  readGraph                connected couplers and codes, e.g. AB:0,BC:0");
-  Serial.println("  sample [shots]           % of shots each pair of spins matched");
+  Serial.println("  sample [shots]           count of each comparator state, e.g. 01010101:9876");
   Serial.println("  disconnect");
   Serial.println("  help");
 }
@@ -67,9 +67,9 @@ static void runCommand(const char *cmd) {
     if (couplers::readGraph(weighted)) utilities::printGraph(weighted);
   } else if (!strcmp(line, "sample")) {
     if (utilities::parseShots(arg, SAMPLE_SHOTS, shots) && utilities::verifyShots(shots)) {
-      uint32_t agree[board::NUM_SPINS][board::NUM_SPINS];
-      oscillators::sample(shots, agree);
-      utilities::printSample(agree, shots);
+      uint32_t counts[board::NUM_STATES];
+      oscillators::sample(shots, counts);
+      utilities::printSample(counts);
     }
   } else if (!strcmp(line, "disconnect")) {
     couplers::disconnect();

@@ -30,7 +30,7 @@ At boot the firmware disconnects all couplers and listens for commands at 115200
 | `writeBinaryGraph <graph>` | Sets the couplers on a graph's edges to code 0 (max coupling) and disconnects the rest. Graph: an edge list like `AB,BC,CA` |
 | `writeWeightedGraph <graph>` | Sets each listed edge to its code and disconnects the rest. Graph: edges with codes like `AB:0,BC:128` |
 | `readGraph` | Reads the couplers back and prints the connected ones with their codes, e.g. `AB:0,BC:0` |
-| `sample [shots]` | Prints, for each spin, the % of shots every spin's comparator matched it |
+| `sample [shots]` | Prints the count of each comparator state seen, spins A..H as bits, e.g. `01010101:9876,10101010:124` |
 | `disconnect` | Disconnects every coupler so the oscillators run uncoupled |
 
 ## Code layout

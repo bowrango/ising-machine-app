@@ -7,7 +7,7 @@
 
 namespace oscillators {
 
-// Takes shots comparator snapshots. agree[i][j] counts the snapshots where spins i and j had the same bit
-void sample(uint32_t shots, uint32_t agree[board::NUM_SPINS][board::NUM_SPINS]);
+// generates distribution using shots samples
+void sample(uint32_t shots, uint32_t counts[board::NUM_STATES]);
 
 }  // namespace oscillators
