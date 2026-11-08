@@ -4,8 +4,4 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig({
   plugins: [react(), cloudflare()],
-  server: {
-    // Reachable from the ESP32 over the LAN.
-    host: "0.0.0.0",
-  },
 });

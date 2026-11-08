@@ -18,11 +18,11 @@
     font=\normalsize, line width=0.9pt, >={Latex[length=2.2mm]},
     chip/.style={draw, line width=1.1pt, fill=white, align=center},
     pin/.style={font=\small},
-    bus/.style={line width=2.4pt},
+    bus/.style={},
   ]
   % ESP32
   \draw[chip] (0,0.5) rectangle (2.6,-9.3);
-  \node[font=\large\bfseries] at (1.3,-4.4) {ESP32};
+  \node[font=\large] at (1.3,-4.4) {ESP32};
   \foreach \y/\t in {0/SCLK\\[-2pt]MOSI, -1.5/ADDR, -3.5/CS1, -7.1/MISO, -8.8/{SH/LD}}
     \node[pin, anchor=east, align=right] at (2.55,\y) {\t};
 
@@ -69,8 +69,5 @@
   \draw[->] (8.6,-8.35) node[pin, left] {SDO} -- (8.6,-7.6);
   \draw[->] (8.1,-7.1) -- (2.6,-7.1);
 
-  % What each address does
-  \node[anchor=west, font=\small] at (0,-10.0) {Addr 0--6: write weights};
-  \node[anchor=west, font=\small] at (0,-10.5) {Addr 7: read spins};
 \end{tikzpicture}
 \end{document}

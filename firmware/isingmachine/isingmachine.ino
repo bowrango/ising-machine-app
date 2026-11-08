@@ -48,20 +48,20 @@ static void runCommand(const char *cmd) {
   } else if (!strcmp(line, "sweepCouplers")) {
     tests::sweepCouplers();
   } else if (!strcmp(line, "writeCode")) {
-    if (utilities::parseNumber(arg, code) && utilities::verifyCode(code)) couplers::writeCode(code);
+    if (utilities::parseNumber(arg, code) && utilities::verifyCode(code)) utilities::verifyWrite(couplers::writeCode(code));
   } else if (!strcmp(line, "measureCouplers")) {
     if (utilities::parseNumber(arg, code) && utilities::verifyCode(code)) tests::measureCouplers(code);
   } else if (!strcmp(line, "writeBinaryGraph")) {
     if (!arg) {
       Serial.println("Error: expected writeBinaryGraph <graph>");
     } else if (utilities::createBinaryGraph(arg, binary)) {
-      couplers::writeBinaryGraph(binary);
+      utilities::verifyWrite(couplers::writeBinaryGraph(binary));
     }
   } else if (!strcmp(line, "writeWeightedGraph")) {
     if (!arg) {
       Serial.println("Error: expected writeWeightedGraph <graph>");
     } else if (utilities::createWeightedGraph(arg, weighted)) {
-      couplers::writeWeightedGraph(weighted);
+      utilities::verifyWrite(couplers::writeWeightedGraph(weighted));
     }
   } else if (!strcmp(line, "readGraph")) {
     if (couplers::readGraph(weighted)) utilities::printGraph(weighted);
@@ -72,7 +72,7 @@ static void runCommand(const char *cmd) {
       utilities::printSample(counts);
     }
   } else if (!strcmp(line, "disconnect")) {
-    couplers::disconnect();
+    utilities::verifyWrite(couplers::disconnect());
   } else if (!strcmp(line, "help")) {
     printHelp();
   } else {
@@ -88,7 +88,7 @@ void setup() {
   Serial.println("\n[BOOT] Ising machine firmware");
 
   // Disconnect all couplers for simple reset
-  couplers::disconnect();
+  utilities::verifyWrite(couplers::disconnect());
   printHelp();
 }
 

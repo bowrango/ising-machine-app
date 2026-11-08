@@ -1,8 +1,9 @@
 # npm dependencies
 node_modules/
 
-# Vite build output
+# Vite build output and dependency cache
 dist/
+.vite/
 
 # Wrangler local state (dev Durable Object storage)
 .wrangler/
@@ -12,9 +13,6 @@ dist/
 
 # macOS Finder metadata
 .DS_Store
-
-# ESP32 Wi-Fi credentials and DEVICE_TOKEN
-firmware/**/secrets.h
 
 # Local bench-test notes
 firmware/isingmachine/src/tests/TODO.md

@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import type { Published, Result, Snapshot } from "../protocol/messages";
+import { isResult, type Published, type Snapshot } from "../protocol/messages";
 
 // Single instance holding the latest result and relaying new ones to all browsers.
 export class DeviceSession extends DurableObject<Env> {
@@ -21,14 +21,14 @@ export class DeviceSession extends DurableObject<Env> {
     }
 
     if (pathname === "/api/result") {
-      let result: Result;
+      let result: unknown;
       try {
         result = await request.json();
       } catch {
         return new Response("Invalid JSON", { status: 400 });
       }
-      if (result?.type !== "result" || typeof result.name !== "string") {
-        return new Response("Expected a result", { status: 400 });
+      if (!isResult(result)) {
+        return new Response("Expected a Result (protocol/messages.ts)", { status: 400 });
       }
       this.result = { ...result, receivedMs: Date.now() };
       await this.ctx.storage.put("result", this.result);

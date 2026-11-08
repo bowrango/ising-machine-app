@@ -57,6 +57,16 @@ bool verifyShots(long shots) {
   return false;
 }
 
+bool verifyWrite(uint8_t failed) {
+  if (!failed) return true;
+  Serial.print("Error: readback mismatch on");
+  for (uint8_t pot = 0; pot < board::NUM_DIGIPOTS; pot++) {
+    if (failed >> pot & 1) Serial.printf(" %s", board::DIGIPOT_LABEL[pot]);
+  }
+  Serial.println();
+  return false;
+}
+
 bool createBinaryGraph(const char *text, couplers::BinaryGraph &graph) {
   graph = 0;
   for (const char *e = text;; e += 3) {

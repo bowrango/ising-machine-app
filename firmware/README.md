@@ -48,4 +48,4 @@ firmware/isingmachine/
     └── tests/            # serial tests
 ```
 
-Drivers never print, and only `bus` touches the SPI pins.
+Drivers never print, and only `bus` touches the SPI pins. Coupler writes are read back; a mismatch prints `Error: readback mismatch on U17 …`, which `device.py` raises as an exception.

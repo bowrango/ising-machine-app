@@ -32,6 +32,10 @@ bool createBinaryGraph(const char *text, couplers::BinaryGraph &graph);
 // Prints an error and returns false if text isn't one.
 bool createWeightedGraph(const char *text, couplers::WeightedGraph graph);
 
+// True if a coupler write read back correctly (failed = the digipot bitmask couplers:: returns);
+// otherwise prints an error naming the digipots that didn't match.
+bool verifyWrite(uint8_t failed);
+
 // Prints graph's edges with their codes, e.g. "AB:0,BC:128", or "none".
 void printGraph(const couplers::WeightedGraph graph);
 

@@ -20,7 +20,7 @@ machine.publish("ring4b", problem, r)           # POST result to isingmachine.ap
 machine.close()
 ```
 
-[`run_maxcut.py`](hardware/io/run_maxcut.py) runs preset problems (`ring4b`, `ring8b`/`ring8w`, `cal_ring8b`/`cal_ring8w`, `cube8b`/`cube8w`, `cal_cube8b`/`cal_cube8w`, `bipart8b`/`bipart8w`, `cal_bipart8b`/`cal_bipart8w`, `full8b`/`full8w`):
+[`run_maxcut.py`](hardware/io/run_maxcut.py) runs preset problems (`ring4b`, `ring8b`/`ring8w`, `cal_ring8b`/`cal_ring8w`, `cube8b`/`cube8w`, `cal_cube8b`/`cal_cube8w`, `bipart8b`/`bipart8w`, `cal_bipart8b`/`cal_bipart8w`, `cubic8b`/`cubic8w` (random, `--seed`), `dense8b`/`dense8w`, `empty`):
 ```
 python3 hardware/io/run_maxcut.py cal_ring8b bipart8w --publish
 ```

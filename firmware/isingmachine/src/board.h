@@ -1,5 +1,5 @@
 // Board definitions: Ising machine main board + Adafruit ESP32 Feather V2.
-// Schematics: hardware/coupler-schematic.PDF, hardware/oscillator-schematic.PDF
+// Schematics: hardware/schematic/coupler-schematic.PDF, hardware/schematic/oscillator-schematic.PDF
 #pragma once
 #include <stdint.h>
 
@@ -38,7 +38,7 @@ constexpr uint8_t NUM_COUPLERS = 28;
 constexpr uint16_t NUM_STATES = 256;
 constexpr char SPIN_LABEL[NUM_SPINS + 1] = "ABCDEFGH";
 
-// Coupler wiring: digipot channel -> spin pair. Derived from the netlist (firmware/README.md §1.4);
+// Coupler wiring: digipot channel -> spin pair. Derived from the coupler-board netlist;
 // verify on the bench. Each channel is a W-B rheostat joining an _L node to an _R node, so all
 // couplings share one sign and only the magnitude is programmable.
 struct SpinPair {
