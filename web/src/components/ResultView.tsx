@@ -36,7 +36,7 @@ export function ResultView({ result }: Props) {
       })}
 
       {/* Correlation with the reference, white (+1) to black (-1); its sign is the found state */}
-      <div className="label row-label">{result ? `found (cut=${result.found.cut})` : "found"}</div>
+      <div className="label row-label">{result ? `found (cut=${result.found.cut}${result.pMax === undefined ? "" : `, P(max)=${result.pMax.toFixed(2)}`})` : "found"}</div>
       {idx.map((j) => {
         const corr = result?.corr[SPIN_LABELS[j]];
         if (corr === undefined) return <div key={`s${j}`} className="spin" />;

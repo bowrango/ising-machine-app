@@ -18,6 +18,8 @@ export interface Result {
   max: { state: Record<string, Phase>; cut: number };
   /** Each spin's correlation with the reference spin, -1 (antiphase) … 1 (in phase). */
   corr: Record<string, number>;
+  /** Fraction of shots whose sampled state reaches the max cut, 0 … 1. */
+  pMax: number;
 }
 
 const isObject = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
@@ -38,7 +40,10 @@ export function isResult(x: unknown): x is Result {
     isMap(x.problem, isEdge, isNumber) &&
     isMap(x.corr, isSpin, (v) => isNumber(v) && Math.abs(v as number) <= 1) &&
     isCut(x.found) &&
-    isCut(x.max)
+    isCut(x.max) &&
+    isNumber(x.pMax) &&
+    (x.pMax as number) >= 0 &&
+    (x.pMax as number) <= 1
   );
 }
 
