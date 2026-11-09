@@ -3,8 +3,10 @@
     python run_maxcut.py ring4b ring8b cal_ring8b cube8b cal_cube8b bipart8b cal_bipart8b dense8b
     python run_maxcut.py ring8w cal_ring8w bipart8w dense8w --seed 3
     python run_maxcut.py cubic8b cubic8w --seed 3
+    python run_maxcut.py er8b er8w --seed 3
+    python run_maxcut.py star8b
     python run_maxcut.py ring4b --phase --write
-    python run_maxcut.py bipart8w --publish       # uses DEVICE_TOKEN from the environment
+    python run_maxcut.py k44w --publish       # uses DEVICE_TOKEN from the environment
 """
 
 import argparse
@@ -14,7 +16,7 @@ from datetime import datetime
 from itertools import combinations
 from pathlib import Path
 
-from device import IsingMachine, cut_value
+from device import IsingMachine
 
 OUT_DIR = Path(__file__).parent / "maxcut"
 SPINS = "ABCDEFGH"
@@ -28,14 +30,33 @@ CUBE8 = [a + b for i, a in enumerate(SPINS) for j, b in enumerate(SPINS) if i < 
 # Calibrated cube: oscillators placed on corners to minimise the largest neighbour frequency gap
 # (43.7 kHz, G-H; 58.1 kHz for CUBE8). Bipartite: ADEG vs BCFH.
 CAL_CUBE8 = ["AB", "AC", "AF", "BD", "BG", "CD", "CE", "DH", "EF", "EH", "FG", "GH"]
-BIPART8 = [a + b for a in "ABCD" for b in "EFGH"]  # K4,4: ABCD vs EFGH
-# Calibrated K4,4: the split minimising the largest cross gap (46.3 kHz; 58.1 kHz for BIPART8).
-CAL_BIPART8 = ["".join(sorted(a + b)) for a in "ABFH" for b in "CDEG"]
+K44 = [a + b for a in "ABCD" for b in "EFGH"]  # K4,4: ABCD vs EFGH
+# Calibrated K4,4: the split minimising the largest cross gap (46.3 kHz; 58.1 kHz for K44).
+CAL_K44 = ["".join(sorted(a + b)) for a in "ABFH" for b in "CDEG"]
+STAR8 = ["A" + b for b in SPINS[1:]]  # hub A: unique max cut 7 is a 1 vs 7 split (A vs the rest)
 
 
 def weighted(edges: list[str]):
     """edges with a uniform random weight each, 1..W_MAX so no edge is disconnected."""
     return lambda rng: {e: rng.randint(1, W_MAX) for e in edges}
+
+
+def frustrated(edges: list[str]) -> bool:
+    """Connected and non-bipartite on A..H: 2-colour from A; an odd cycle breaks the colouring, and spins
+    left unreached mean the graph is disconnected."""
+    side = {"A": 0}
+    stack, odd = ["A"], False
+    while stack:
+        u = stack.pop()
+        for e in edges:
+            if u in e:
+                v = e.replace(u, "", 1)
+                if v not in side:
+                    side[v] = 1 - side[u]
+                    stack.append(v)
+                elif side[v] == side[u]:
+                    odd = True
+    return odd and len(side) == len(SPINS)
 
 
 def cubic8(rng: random.Random) -> list[str]:
@@ -47,19 +68,16 @@ def cubic8(rng: random.Random) -> list[str]:
         edges = sorted({"".join(sorted(stubs[k:k + 2])) for k in range(0, len(stubs), 2)})
         if len(edges) < len(stubs) // 2 or any(a == b for a, b in edges):
             continue  # self-loop or repeated edge
-        side = {"A": 0}  # 2-colour from A: fails on an odd cycle; unreached spins mean disconnected
-        stack, odd = ["A"], False
-        while stack:
-            u = stack.pop()
-            for e in edges:
-                if u in e:
-                    v = e.replace(u, "", 1)
-                    if v not in side:
-                        side[v] = 1 - side[u]
-                        stack.append(v)
-                    elif side[v] == side[u]:
-                        odd = True
-        if odd and len(side) == len(SPINS):
+        if frustrated(edges):
+            return edges
+
+
+def er8(rng: random.Random, m: int = 12) -> list[str]:
+    """Random Erdos-Renyi G(n, m) graph on A..H: m of the 28 edges uniformly, redrawn until connected and
+    non-bipartite. m = 12 matches cubic8, so the two differ only in degree spread (cubic8: all 3)."""
+    while True:
+        edges = sorted(rng.sample([a + b for a, b in combinations(SPINS, 2)], m))
+        if frustrated(edges):
             return edges
 
 
@@ -80,21 +98,18 @@ GRAPHS = {
     "cube8w": weighted(CUBE8),
     "cal_cube8b": dict.fromkeys(CAL_CUBE8, 1),
     "cal_cube8w": weighted(CAL_CUBE8),
-    "bipart8b": dict.fromkeys(BIPART8, 1),
-    "bipart8w": weighted(BIPART8),
-    "cal_bipart8b": dict.fromkeys(CAL_BIPART8, 1),
-    "cal_bipart8w": weighted(CAL_BIPART8),
+    "k44b": dict.fromkeys(K44, 1),
+    "k44w": weighted(K44),
+    "cal_k44b": dict.fromkeys(CAL_K44, 1),
+    "cal_k44w": weighted(CAL_K44),
+    "star8b": dict.fromkeys(STAR8, 1),
     "cubic8b": lambda rng: dict.fromkeys(cubic8(rng), 1),
     "cubic8w": lambda rng: weighted(cubic8(rng))(rng),  # same edges as cubic8b for a given seed
+    "er8b": lambda rng: dict.fromkeys(er8(rng), 1),
+    "er8w": lambda rng: weighted(er8(rng))(rng),  # same edges as er8b for a given seed
     "dense8b": dict.fromkeys((a + b for a, b in combinations(SPINS, 2)), 1),  # K8
     "dense8w": dense8w,
 }
-
-
-def p_optimal(problem: dict[str, int], r: dict) -> float:
-    """Fraction of shots whose sampled state (bits A..H) reaches the max cut."""
-    hits = sum(n for st, n in r["counts"].items() if cut_value(problem, dict(zip(SPINS, st))) == r["max"])
-    return hits / sum(r["counts"].values())
 
 
 def phase_vs_a(r: dict) -> str:
@@ -138,7 +153,7 @@ def main():
             state = "".join(r["state"][c] for c in order)
             best = "".join(r["best_state"][c] for c in order)
             line = (f"{name:12} {order} {state}  found {r['cut']} (max {r['max']}, {best}){f'  seed {seed}' if callable(graph) else ''}\n"
-                    f"{'':12} ratio {r['cut'] / r['max'] if r['max'] else 1:.2f}  P(max) {p_optimal(problem, r):.3f}  corr "
+                    f"{'':12} ratio {r['cut'] / r['max'] if r['max'] else 1:.2f}  P(max) {r['p_max']:.3f}  corr "
                     + " ".join(f"{r['corr'][c]:+.2f}" for c in order))
             if args.phase:
                 line += phase_vs_a(r)
