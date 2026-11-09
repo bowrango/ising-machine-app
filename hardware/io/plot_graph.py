@@ -55,7 +55,7 @@ def draw(ax, name: str, problem: dict[str, int], seed: int | None = None):
         ax.scatter([x], [y], s=420, c="k" if dark else "white", edgecolors=edge, linewidths=1.2, zorder=3)
         ax.text(x, y, s, ha="center", va="center", fontsize=10, color="white" if dark else edge, zorder=4)
 
-    title = f"{name}{f'  (seed {seed})' if seed is not None else ''}\nmax cut {best}"
+    title = f"{name}{f'  (seed {seed})' if seed is not None else ''}\nbest (cut={best})"
     ax.set_title(title, fontsize=10)
     ax.set_xlim(-1.3, 1.3)
     ax.set_ylim(-1.3, 1.3)
