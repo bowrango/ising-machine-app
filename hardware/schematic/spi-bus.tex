@@ -2,7 +2,7 @@
 % CS1 (GPIO 21) enables the SN74HCS138 3-8 decoder (U13); ADDR0-2 (GPIO 15, 33, 27) pick its output.
 %   Address 0-6: DP_CS0-6 low selects one MCP4351 digipot (U16-U22) to program its four coupler wipers (SPI mode 0).
 %   Address 7:   CLK_INH low ungates SCLK into the SN74HCS165 (U15) and switches the MISO mux to its QH.
-%                SH/LD (GPIO 19) rising latches WIN_A..WIN_H at once; 8 clocks shift them out (SPI mode 2).
+%                SH/LD (GPIO 19) rising latches OUT_A..OUT_H (WIN on the schematic) at once; 8 clocks shift them out (SPI mode 2).
 % Build: lualatex spi-bus.tex && pdftoppm -png -r 300 -singlefile spi-bus.pdf spi-bus
 \documentclass[border=8pt]{standalone}
 \usepackage{tikz}
@@ -59,7 +59,7 @@
   \draw[->] (8.6,-5.8) -- (8.6,-6.6);
 
   % Shift register
-  \draw[<-] (13.4,-7.1) -- ++(0.8,0) node[right] {WIN$_A$\,..\,WIN$_H$};
+  \draw[<-] (13.4,-7.1) -- ++(0.8,0) node[right] {OUT$_A$\,..\,OUT$_H$};
   \draw[->] (2.6,-8.8) -- (11.5,-8.8) -- (11.5,-7.6) node[pin, above] {SH/LD};
 
   % MISO mux: digipot SDO, or QH when CLK_INH is low
