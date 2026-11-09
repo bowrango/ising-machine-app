@@ -145,8 +145,10 @@ class IsingMachine:
         corr = self.correlation(counts=counts)[spins[0]]  # fix first spin as the reference
         state = {c: "+" if corr[c] >= 0 else "-" for c in spins}
         best, best_state = max_cut(problem, spins)
+        hits = sum(n for st, n in counts.items() if cut_value(problem, dict(zip(SPINS, st))) == best)
         return {"codes": codes, "state": state, "cut": cut_value(problem, state), "max": best,
-                "best_state": best_state, "corr": corr, "counts": counts}
+                "best_state": best_state, "corr": corr, "counts": counts,
+                "p_max": hits / sum(counts.values())}  # fraction of shots reaching the max cut
 
     def publish(self, name: str, problem: dict[str, float], result: dict, url: str = PUBLISH_URL):
         """POST a solve result to the site (Result in web/protocol/messages.ts), authorised by the
@@ -155,7 +157,7 @@ class IsingMachine:
         msg = {"type": "result", "name": name, "problem": problem,
                "corr": {c: result["corr"][c] for c in result["state"]},
                "found": {"state": result["state"], "cut": result["cut"]},
-               "max": {"state": result["best_state"], "cut": result["max"]}}
+               "max": {"state": result["best_state"], "cut": result["max"]}, "pMax": result["p_max"]}
         req = urllib.request.Request(url, data=json.dumps(msg).encode(), method="POST", headers={
             "Authorization": f"Bearer {token}", "Content-Type": "application/json", "User-Agent": "isingmachine"})
         try:
