@@ -31,7 +31,7 @@ C12 g j8 {8.2n/Nshare}
 Rj8 j8 0 {Rj8}
 * X1/X2: HC240 inverters (hcinv: push-pull, Rout each way, tanh threshold midway between vcc and its gnd, input lag td; in osc.lib). R1/R2: 1k, open until SW1 enables the outputs at Ton.
 * Rloss: lumped tank loss beyond the inductor ESR (couplers, probe, comparator), fitted to A_L with only its probe connected (0.31-2.98 V, 2026-11-03).
-* Node loads: Chc = HC240 Ci (3p typ), Cwin = TLV3502 (2p), Cpot = one MCP4351 terminal (estimate), Cprobe/Rprobe = 10x probe on l. The probe is the start-up asymmetry.
+* Node loads: Chc = HC240 Ci (3p typ), Cwin = TLV3502 (2p), Cpot = one MCP4351 terminal (estimate), Cprobe/Rprobe = 10x probe on l, as on the bench. Start-up: a noiseless simulation needs an asymmetry to leave the balanced state; the unequal l/r loading (probe, 4 vs 3 Cpot) provides it, as noise does on the bench.
 * g: HC240 GND pin = SYNC net: R12 || L12 (L1 on the coupler board) to the plane, C12 to J8 (Rj8 = 1G open, 50 for a generator). Csync is the net's pin/trace capacitance (not drawn).
 * Ct = 723p fits A (free-running 1.044 MHz, A_L probe only, with td = 40n, inside the 750p part's 5%). td: ~40 ns from the switching kinks on A_L (2.0 V rising, 1.3 V falling).
 * Supply: Vreg = Feather 3V3, Ccoupler = C13 + C14 + ten 100n, Rsup + Lsup = traces and J1 (estimates), Cosc = six 100n on the oscillator board.
