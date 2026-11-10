@@ -27,8 +27,8 @@
 
   % Scope & AWG
   \node[box, minimum height=1.0cm, inner xsep=10pt] (scope) at (-3.0,0.2) {Scope \& AWG};
-  \draw[<->] (scope.east) -- node[lbl, above] {LAN (SCPI)} (1.0,0.2);
-  \draw[<->] (scope.south) |- node[lbl, pos=0.75, above] {probes, SYNC} (1.0,-8.4);
+  \draw[<->] (scope.east) -- node[lbl, above] {LAN} (1.0,0.2);
+  \draw[<->] (scope.south) |- (1.0,-8.4);
 
   % ESP32
   \draw[box] (1.0,-2.2) rectangle (9.0,-6.6);
@@ -45,6 +45,6 @@
   % Ising machine
   \draw[box] (1.0,-7.8) rectangle (9.0,-9.0);
   \node at (5.0,-8.4) {Ising Machine};
-  \draw[<->] (5.0,-6.6) -- node[lbl, right] {SPI + GPIO} (5.0,-7.8);
+  \draw[<->] (5.0,-6.6) -- node[lbl, right] {SPI} (5.0,-7.8);
 \end{tikzpicture}
 \end{document}

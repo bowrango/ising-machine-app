@@ -1,6 +1,6 @@
 % Two oscillators i and j, each two SN74HC240 inverters cross-coupled through R = 1k onto an L || C tank
 % (L = 30 uH, C = 750 pF; as in sim/oscillator.cir), with terminals L and R. The HC240 boxes show the inverters
-% are one IC whose GND pin is the SYNC net, where the 2f0 SYNC is injected. Coupler R_ij joins i's R to j's L.
+% are one IC whose GND pin is the SYNC net, where the 2f1 SYNC is injected. Coupler R_ij joins i's R to j's L.
 % Each oscillator's TLV3502 compares R (+IN) against L (-IN) and gives its phase bit OUT (WIN on the schematic, WIN_DETECT_X4.SchDoc).
 % Build: lualatex oscillator-connection.tex && pdftoppm -png -r 300 -singlefile oscillator-connection.pdf oscillator-connection
 \documentclass[border=8pt]{standalone}
@@ -43,9 +43,9 @@
   \osc{0}{i}
   \osc{6}{j}
 
-  % SYNC rail: both HC240 GND pins, driven at 2f0
+  % SYNC rail: both HC240 GND pins, driven at 2f1
   \draw (2,1.2) -- (11.2,1.2) to[sV] (11.2,-0.4) node[ground, scale=1.4, line width=0.7pt]{};
-  \node[anchor=west, align=left] at (11.55,0.4) {SYNC\\$2f_0$};
+  \node[anchor=west, align=left] at (11.55,0.4) {SYNC\\$2f_1$};
 
   % Coupler: i.R -- R_ij -- j.L
   \draw[european resistors] (4,-4.0) to[vR, l=$R_{ij}$, *-*] (6,-4.0);
